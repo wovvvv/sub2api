@@ -119,6 +119,7 @@ func setupCodexRegistrationHandlerRouter(
 	base := router.Group("/api/v1/admin/account-registration/codex")
 	{
 		base.POST("/scan", handler.Scan)
+		base.GET("/scan/:taskID", handler.GetScanTask)
 		base.GET("/candidates", handler.ListCandidates)
 		base.DELETE("/candidates", handler.ClearCandidates)
 		base.POST("/candidates/select", handler.SelectCandidates)
@@ -153,25 +154,48 @@ func TestCodexRegistrationHandlerScan(t *testing.T) {
 	router.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusOK, rec.Code)
-	require.NotContains(t, rec.Body.String(), "refresh_token")
-	require.NotContains(t, rec.Body.String(), "access_token")
-	require.NotContains(t, rec.Body.String(), "id_token")
-
 	var resp struct {
 		Code int `json:"code"`
 		Data struct {
-			Scanned    int `json:"scanned"`
-			Candidates []struct {
-				ID       int64 `json:"id"`
-				CanStage bool  `json:"can_stage"`
-			} `json:"candidates"`
+			TaskID string `json:"task_id"`
+			Status string `json:"status"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 	require.Equal(t, 0, resp.Code)
-	require.Equal(t, 1, resp.Data.Scanned)
-	require.Len(t, resp.Data.Candidates, 1)
-	require.True(t, resp.Data.Candidates[0].CanStage)
+	require.NotEmpty(t, resp.Data.TaskID)
+	require.Contains(t, []string{"queued", "running", "succeeded"}, resp.Data.Status)
+
+	require.Eventually(t, func() bool {
+		statusRec := httptest.NewRecorder()
+		statusReq := httptest.NewRequest(http.MethodGet, "/api/v1/admin/account-registration/codex/scan/"+resp.Data.TaskID, nil)
+		router.ServeHTTP(statusRec, statusReq)
+		if statusRec.Code != http.StatusOK {
+			return false
+		}
+
+		require.NotContains(t, statusRec.Body.String(), "refresh_token")
+		require.NotContains(t, statusRec.Body.String(), "access_token")
+		require.NotContains(t, statusRec.Body.String(), "id_token")
+
+		var statusResp struct {
+			Code int `json:"code"`
+			Data struct {
+				TaskID  string `json:"task_id"`
+				Status  string `json:"status"`
+				Scanned int    `json:"scanned"`
+			} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(statusRec.Body.Bytes(), &statusResp))
+		require.Equal(t, 0, statusResp.Code)
+		require.Equal(t, resp.Data.TaskID, statusResp.Data.TaskID)
+		if statusResp.Data.Status != "succeeded" {
+			return false
+		}
+		require.Equal(t, 1, statusResp.Data.Scanned)
+		return true
+	}, time.Second, 10*time.Millisecond)
+
 	require.Equal(t, "gpt-5.4-mini", workflowSvc.scanModel)
 }
 

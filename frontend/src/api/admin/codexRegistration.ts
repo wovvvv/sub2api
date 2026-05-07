@@ -7,12 +7,18 @@ import type {
   CodexRegistrationListResponse,
   CodexRegistrationScanRequest,
   CodexRegistrationScanResponse,
+  CodexRegistrationScanTaskResponse,
   CodexRegistrationSelectResponse,
   CodexRegistrationUnselectResponse
 } from '@/types'
 
 export async function scan(payload?: CodexRegistrationScanRequest): Promise<CodexRegistrationScanResponse> {
   const { data } = await apiClient.post<CodexRegistrationScanResponse>('/admin/account-registration/codex/scan', payload ?? {})
+  return data
+}
+
+export async function getScanTask(taskId: string): Promise<CodexRegistrationScanTaskResponse> {
+  const { data } = await apiClient.get<CodexRegistrationScanTaskResponse>(`/admin/account-registration/codex/scan/${encodeURIComponent(taskId)}`)
   return data
 }
 
@@ -60,6 +66,7 @@ export async function importCandidates(
 
 export const codexRegistrationAPI = {
   scan,
+  getScanTask,
   list,
   stage,
   unstage,

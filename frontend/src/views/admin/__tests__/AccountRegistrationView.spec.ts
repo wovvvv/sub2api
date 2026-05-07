@@ -8,6 +8,7 @@ const longErrorReason = 'refresh auth failure: error: code=502 reason="OPENAI_OA
 const {
   codexList,
   codexScan,
+  codexScanStatus,
   codexStage,
   codexUnstage,
   codexClear,
@@ -19,6 +20,7 @@ const {
 } = vi.hoisted(() => ({
   codexList: vi.fn(),
   codexScan: vi.fn(),
+  codexScanStatus: vi.fn(),
   codexStage: vi.fn(),
   codexUnstage: vi.fn(),
   codexClear: vi.fn(),
@@ -34,6 +36,7 @@ vi.mock('@/api/admin', () => ({
     codexRegistration: {
       list: codexList,
       scan: codexScan,
+      getScanTask: codexScanStatus,
       stage: codexStage,
       unstage: codexUnstage,
       clear: codexClear,
@@ -69,6 +72,7 @@ describe('AccountRegistrationView', () => {
   beforeEach(() => {
     codexList.mockReset()
     codexScan.mockReset()
+    codexScanStatus.mockReset()
     codexStage.mockReset()
     codexUnstage.mockReset()
     codexClear.mockReset()
@@ -79,9 +83,20 @@ describe('AccountRegistrationView', () => {
     showError.mockReset()
 
     codexScan.mockResolvedValue({
-      scanned: 2,
-      candidates: []
+      task_id: 'scan-task-1',
+      status: 'queued'
     })
+    codexScanStatus
+      .mockResolvedValueOnce({
+        task_id: 'scan-task-1',
+        status: 'running',
+        scanned: 0
+      })
+      .mockResolvedValueOnce({
+        task_id: 'scan-task-1',
+        status: 'succeeded',
+        scanned: 2
+      })
     codexClear.mockResolvedValue({
       cleared: 2
     })
@@ -140,6 +155,10 @@ describe('AccountRegistrationView', () => {
     })
   })
 
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   const BaseDialogStub = defineComponent({
     name: 'BaseDialog',
     props: {
@@ -156,6 +175,7 @@ describe('AccountRegistrationView', () => {
   })
 
   it('supports scan, current-filter selection, and batch import on detection tab', async () => {
+    vi.useFakeTimers()
     const wrapper = mount(AccountRegistrationView, {
       global: {
         stubs: {
@@ -182,6 +202,15 @@ describe('AccountRegistrationView', () => {
 
     await wrapper.get('[data-testid="codex-detection-scan"]').trigger('click')
     expect(codexScan).toHaveBeenCalledTimes(1)
+    await flushPromises()
+    expect(codexScanStatus).toHaveBeenCalledWith('scan-task-1')
+    expect(wrapper.text()).toContain('检测任务运行中')
+    expect(wrapper.text()).toContain('运行中')
+    await vi.advanceTimersByTimeAsync(1000)
+    await flushPromises()
+    expect(codexScanStatus).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('上次检测刚完成，共处理 2 个账号')
+    expect(wrapper.text()).toContain('已完成')
 
     const livenessFilter = wrapper.get('[data-testid="codex-detection-liveness-filter"]')
     await livenessFilter.setValue('alive')
@@ -227,6 +256,54 @@ describe('AccountRegistrationView', () => {
     expect(wrapper.text()).toContain('导入成功 1 个')
     expect(wrapper.text()).toContain('跳过 1 个')
     expect(wrapper.text()).toContain('refresh auth failure')
+
+    vi.useRealTimers()
+  })
+
+  it('shows failed scan status with detail dialog', async () => {
+    vi.useFakeTimers()
+    codexScan.mockResolvedValue({
+      task_id: 'scan-task-failed',
+      status: 'queued'
+    })
+    codexScanStatus.mockReset()
+    codexScanStatus
+      .mockResolvedValueOnce({
+        task_id: 'scan-task-failed',
+        status: 'running',
+        scanned: 0
+      })
+      .mockResolvedValueOnce({
+        task_id: 'scan-task-failed',
+        status: 'failed',
+        scanned: 0,
+        error_message: longErrorReason
+      })
+
+    const wrapper = mount(AccountRegistrationView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+          BaseDialog: BaseDialogStub
+        }
+      }
+    })
+
+    await flushPromises()
+    await wrapper.get('[data-testid="codex-detection-scan"]').trigger('click')
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(1000)
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('失败')
+    expect(wrapper.text()).toContain('检测失败：refresh auth failure')
+    expect(showError).toHaveBeenCalled()
+
+    await wrapper.get('[data-testid="codex-detection-scan-status-detail"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('扫描失败详情')
+    expect(wrapper.text()).toContain(longErrorReason)
   })
 
   it('shows full failure reason in detail dialog and keeps table horizontally scrollable', async () => {

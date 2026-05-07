@@ -2,9 +2,12 @@ package admin
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
@@ -32,6 +35,23 @@ type codexRegistrationSelectionRequest struct {
 
 type codexRegistrationScanRequest struct {
 	Model string `json:"model"`
+}
+
+type codexRegistrationScanTaskStatus string
+
+const (
+	codexRegistrationScanTaskQueued    codexRegistrationScanTaskStatus = "queued"
+	codexRegistrationScanTaskRunning   codexRegistrationScanTaskStatus = "running"
+	codexRegistrationScanTaskSucceeded codexRegistrationScanTaskStatus = "succeeded"
+	codexRegistrationScanTaskFailed    codexRegistrationScanTaskStatus = "failed"
+)
+
+type codexRegistrationScanTask struct {
+	TaskID       string
+	Status       codexRegistrationScanTaskStatus
+	Model        string
+	Scanned      int
+	ErrorMessage string
 }
 
 type codexRegistrationImportRequest struct {
@@ -74,6 +94,10 @@ type codexRegistrationCandidateResponse struct {
 type CodexRegistrationHandler struct {
 	workflow codexRegistrationWorkflowService
 	repo     service.CodexRegistrationCandidateRepository
+
+	scanTaskSeq atomic.Uint64
+	scanTaskMu  sync.RWMutex
+	scanTasks   map[string]codexRegistrationScanTask
 }
 
 func NewCodexRegistrationHandler(
@@ -81,8 +105,9 @@ func NewCodexRegistrationHandler(
 	repo service.CodexRegistrationCandidateRepository,
 ) *CodexRegistrationHandler {
 	return &CodexRegistrationHandler{
-		workflow: workflow,
-		repo:     repo,
+		workflow:  workflow,
+		repo:      repo,
+		scanTasks: make(map[string]codexRegistrationScanTask),
 	}
 }
 
@@ -100,20 +125,35 @@ func (h *CodexRegistrationHandler) Scan(c *gin.Context) {
 		return
 	}
 
-	candidates, err := h.workflow.Scan(c.Request.Context(), strings.TrimSpace(req.Model))
-	if err != nil {
-		response.ErrorFrom(c, err)
+	task := h.createScanTask(strings.TrimSpace(req.Model))
+	go h.runScanTask(context.WithoutCancel(c.Request.Context()), task.TaskID, task.Model)
+
+	response.Success(c, gin.H{
+		"task_id": task.TaskID,
+		"status":  task.Status,
+	})
+}
+
+// GetScanTask returns the latest codex scan task state.
+// GET /api/v1/admin/account-registration/codex/scan/:taskID
+func (h *CodexRegistrationHandler) GetScanTask(c *gin.Context) {
+	taskID := strings.TrimSpace(c.Param("taskID"))
+	if taskID == "" {
+		response.BadRequest(c, "task id is required")
 		return
 	}
 
-	items := make([]codexRegistrationCandidateResponse, 0, len(candidates))
-	for i := range candidates {
-		items = append(items, codexRegistrationCandidateToResponse(candidates[i]))
+	task, ok := h.getScanTask(taskID)
+	if !ok {
+		response.NotFound(c, "Scan task not found")
+		return
 	}
 
 	response.Success(c, gin.H{
-		"scanned":    len(items),
-		"candidates": items,
+		"task_id":       task.TaskID,
+		"status":        task.Status,
+		"scanned":       task.Scanned,
+		"error_message": task.ErrorMessage,
 	})
 }
 
@@ -375,4 +415,56 @@ func uniqueCodexRegistrationIDs(ids []int64) []int64 {
 		out = append(out, id)
 	}
 	return out
+}
+
+func (h *CodexRegistrationHandler) createScanTask(model string) codexRegistrationScanTask {
+	taskID := fmt.Sprintf("codex-scan-%d", h.scanTaskSeq.Add(1))
+	task := codexRegistrationScanTask{
+		TaskID: taskID,
+		Status: codexRegistrationScanTaskQueued,
+		Model:  model,
+	}
+
+	h.scanTaskMu.Lock()
+	h.scanTasks[taskID] = task
+	h.scanTaskMu.Unlock()
+
+	return task
+}
+
+func (h *CodexRegistrationHandler) getScanTask(taskID string) (codexRegistrationScanTask, bool) {
+	h.scanTaskMu.RLock()
+	defer h.scanTaskMu.RUnlock()
+
+	task, ok := h.scanTasks[taskID]
+	return task, ok
+}
+
+func (h *CodexRegistrationHandler) setScanTask(task codexRegistrationScanTask) {
+	h.scanTaskMu.Lock()
+	h.scanTasks[task.TaskID] = task
+	h.scanTaskMu.Unlock()
+}
+
+func (h *CodexRegistrationHandler) runScanTask(ctx context.Context, taskID string, model string) {
+	task, ok := h.getScanTask(taskID)
+	if !ok {
+		return
+	}
+
+	task.Status = codexRegistrationScanTaskRunning
+	h.setScanTask(task)
+
+	candidates, err := h.workflow.Scan(ctx, model)
+	if err != nil {
+		task.Status = codexRegistrationScanTaskFailed
+		task.ErrorMessage = err.Error()
+		h.setScanTask(task)
+		return
+	}
+
+	task.Status = codexRegistrationScanTaskSucceeded
+	task.Scanned = len(candidates)
+	task.ErrorMessage = ""
+	h.setScanTask(task)
 }

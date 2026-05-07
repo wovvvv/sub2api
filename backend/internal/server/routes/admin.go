@@ -339,6 +339,7 @@ func registerCodexAccountRegistrationRoutes(admin *gin.RouterGroup, h *handler.H
 		codex := accountRegistration.Group("/codex")
 		{
 			codex.POST("/scan", h.Admin.CodexRegistration.Scan)
+			codex.GET("/scan/:taskID", h.Admin.CodexRegistration.GetScanTask)
 			codex.GET("/candidates", h.Admin.CodexRegistration.ListCandidates)
 			codex.DELETE("/candidates", h.Admin.CodexRegistration.ClearCandidates)
 			codex.POST("/candidates/select", h.Admin.CodexRegistration.SelectCandidates)

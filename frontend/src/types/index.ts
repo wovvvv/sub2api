@@ -746,9 +746,18 @@ export interface CodexRegistrationCandidate {
   can_import: boolean
 }
 
+export type CodexRegistrationScanTaskStatus = 'queued' | 'running' | 'succeeded' | 'failed'
+
 export interface CodexRegistrationScanResponse {
+  task_id: string
+  status: CodexRegistrationScanTaskStatus
+}
+
+export interface CodexRegistrationScanTaskResponse {
+  task_id: string
+  status: CodexRegistrationScanTaskStatus
   scanned: number
-  candidates: CodexRegistrationCandidate[]
+  error_message?: string
 }
 
 export interface CodexRegistrationScanRequest {

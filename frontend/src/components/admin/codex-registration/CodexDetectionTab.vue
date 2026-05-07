@@ -57,6 +57,34 @@
           {{ scanning ? '检测中...' : '重新检测' }}
         </button>
       </div>
+      <div
+        v-if="scanStatus"
+        class="mt-3 rounded-lg border border-primary-200 bg-primary-50/70 px-3 py-2 text-sm text-primary-800 dark:border-primary-900/40 dark:bg-primary-950/20 dark:text-primary-200"
+        data-testid="codex-detection-scan-status"
+      >
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <span :class="scanStatusBadgeClass(scanStatus.status)">
+                {{ scanStatusLabel(scanStatus.status) }}
+              </span>
+              <span class="break-words">{{ scanStatus.message }}</span>
+            </div>
+            <div v-if="scanStatus.updatedAt" class="mt-1 text-xs text-primary-700/80 dark:text-primary-200/80">
+              最近更新 {{ formatDateTime(scanStatus.updatedAt) }}
+            </div>
+          </div>
+          <button
+            v-if="scanStatus.errorDetail"
+            type="button"
+            class="shrink-0 text-xs text-primary-700 underline decoration-dotted underline-offset-2 hover:text-primary-900 dark:text-primary-200 dark:hover:text-white"
+            data-testid="codex-detection-scan-status-detail"
+            @click="openScanStatusDetail"
+          >
+            详情
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="card p-4">
@@ -491,11 +519,31 @@
         </div>
       </template>
     </BaseDialog>
+
+    <BaseDialog
+      :show="showScanStatusDetail"
+      title="扫描失败详情"
+      @close="closeScanStatusDetail"
+    >
+      <div v-if="scanStatus?.errorDetail" class="space-y-4">
+        <div class="rounded-lg border border-gray-200 bg-white p-3 dark:border-dark-700 dark:bg-dark-900">
+          <pre class="whitespace-pre-wrap break-all text-xs text-gray-700 dark:text-dark-200">{{ scanStatus.errorDetail }}</pre>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end">
+          <button class="btn btn-secondary" type="button" @click="closeScanStatusDetail">
+            关闭
+          </button>
+        </div>
+      </template>
+    </BaseDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import { adminAPI } from '@/api/admin'
 import { useAppStore } from '@/stores/app'
@@ -506,6 +554,7 @@ import type {
   CodexRegistrationImportRequest,
   CodexRegistrationListFilters,
   CodexRegistrationLivenessStatus,
+  CodexRegistrationScanTaskResponse,
   CodexRegistrationWorkflowState,
   Proxy
 } from '@/types'
@@ -550,9 +599,20 @@ const importProgress = ref<{
   chunkCount: number
   percent: number
 } | null>(null)
+type CodexScanUiStatus = 'queued' | 'running' | 'succeeded' | 'failed'
+
+const scanStatus = ref<{
+  status: CodexScanUiStatus
+  message: string
+  updatedAt: string
+  errorDetail?: string
+} | null>(null)
+const showScanStatusDetail = ref(false)
 
 const codexImportChunkSize = 5
 const codexImportTimeoutMs = 2 * 60 * 1000
+const codexScanPollIntervalMs = 1000
+let scanPollTimer: number | null = null
 
 const selectedIdSet = computed(() => new Set(selectedIds.value))
 const importCandidateIdSet = computed(() => new Set(importCandidateIds.value))
@@ -667,6 +727,46 @@ function openReasonDetail(candidate: CodexRegistrationCandidate) {
 
 function closeReasonDetail() {
   detailCandidate.value = null
+}
+
+function scanStatusLabel(status: CodexScanUiStatus) {
+  if (status === 'queued') return '排队中'
+  if (status === 'running') return '运行中'
+  if (status === 'succeeded') return '已完成'
+  return '失败'
+}
+
+function scanStatusBadgeClass(status: CodexScanUiStatus) {
+  if (status === 'queued') {
+    return 'inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+  }
+  if (status === 'running') {
+    return 'inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700 dark:bg-sky-900/30 dark:text-sky-300'
+  }
+  if (status === 'succeeded') {
+    return 'inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+  }
+  return 'inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+}
+
+function setScanStatus(status: CodexScanUiStatus, message: string, errorDetail?: string) {
+  scanStatus.value = {
+    status,
+    message,
+    updatedAt: new Date().toISOString(),
+    errorDetail
+  }
+}
+
+function openScanStatusDetail() {
+  if (!scanStatus.value?.errorDetail) {
+    return
+  }
+  showScanStatusDetail.value = true
+}
+
+function closeScanStatusDetail() {
+  showScanStatusDetail.value = false
 }
 
 function syncSelectionWithCurrentCandidates(nextCandidates: CodexRegistrationCandidate[]) {
@@ -813,17 +913,56 @@ async function loadOptions() {
   }
 }
 
+function clearScanPollTimer() {
+  if (scanPollTimer !== null) {
+    clearTimeout(scanPollTimer)
+    scanPollTimer = null
+  }
+}
+
+async function waitForScanTask(taskId: string): Promise<CodexRegistrationScanTaskResponse> {
+  while (true) {
+    const task = await adminAPI.codexRegistration.getScanTask(taskId)
+    if (task.status === 'queued') {
+      setScanStatus('queued', '扫描任务已提交，正在排队')
+    } else if (task.status === 'running') {
+      setScanStatus('running', '检测任务运行中')
+    }
+    if (task.status === 'succeeded') {
+      return task
+    }
+    if (task.status === 'failed') {
+      throw new Error(task.error_message || '检测账号失败')
+    }
+
+    await new Promise<void>((resolve) => {
+      clearScanPollTimer()
+      scanPollTimer = window.setTimeout(() => {
+        scanPollTimer = null
+        resolve()
+      }, codexScanPollIntervalMs)
+    })
+  }
+}
+
 async function handleScan() {
   scanning.value = true
   try {
-    const response = await adminAPI.codexRegistration.scan({
+    clearScanPollTimer()
+    showScanStatusDetail.value = false
+    const task = await adminAPI.codexRegistration.scan({
       model: scanModel.value.trim() || 'gpt-5.4-mini'
     })
+    setScanStatus(task.status === 'queued' ? 'queued' : 'running', task.status === 'queued' ? '扫描任务已提交，正在排队' : '检测任务运行中')
+    const response = await waitForScanTask(task.task_id)
+    setScanStatus('succeeded', `上次检测刚完成，共处理 ${response.scanned} 个账号`)
     appStore.showSuccess(`检测完成，共处理 ${response.scanned} 个账号`)
     await loadCandidates()
   } catch (error: any) {
+    setScanStatus('failed', error?.message ? `检测失败：${error.message}` : '检测失败', error?.message || '')
     appStore.showError(error?.message || '检测账号失败')
   } finally {
+    clearScanPollTimer()
     scanning.value = false
   }
 }
@@ -917,5 +1056,9 @@ async function handleImport() {
 
 onMounted(async () => {
   await Promise.all([loadCandidates(), loadOptions()])
+})
+
+onBeforeUnmount(() => {
+  clearScanPollTimer()
 })
 </script>
