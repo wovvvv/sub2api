@@ -601,12 +601,16 @@ func (s *CodexRegistrationService) Import(ctx context.Context, input CodexRegist
 				credentials["email"] = strings.TrimSpace(sourceRecord.Email)
 			}
 		}
-		if strings.TrimSpace(sourceRecord.AccountID) != "" {
+		effectiveAccountID := strings.TrimSpace(candidate.AccountID)
+		if effectiveAccountID == "" {
+			effectiveAccountID = strings.TrimSpace(sourceRecord.AccountID)
+		}
+		if effectiveAccountID != "" {
 			if _, ok := credentials["chatgpt_account_id"]; !ok {
-				credentials["chatgpt_account_id"] = strings.TrimSpace(sourceRecord.AccountID)
+				credentials["chatgpt_account_id"] = effectiveAccountID
 			}
 			if _, ok := credentials["account_id"]; !ok {
-				credentials["account_id"] = strings.TrimSpace(sourceRecord.AccountID)
+				credentials["account_id"] = effectiveAccountID
 			}
 		}
 		if strings.TrimSpace(sourceRecord.ClientID) != "" {
@@ -931,14 +935,14 @@ func applyCodexRegistrationCanonicalIdentityToState(candidate *CodexRegistration
 }
 
 func (s *CodexRegistrationService) refreshAndProbe(ctx context.Context, source codexRegistrationSourceRecord, model string) (*codexRegistrationRefreshProbeResult, error) {
-	if strings.TrimSpace(source.Email) == "" || strings.TrimSpace(source.AccountID) == "" {
+	if strings.TrimSpace(source.Email) == "" {
 		return &codexRegistrationRefreshProbeResult{
 			liveness:     CodexRegistrationLivenessInvalid,
-			statusReason: "missing mandatory source fields: email/account_id",
+			statusReason: "missing mandatory source fields: email",
 		}, nil
 	}
 	if strings.TrimSpace(source.RefreshToken) == "" {
-			if fallback := s.probeExistingAccessToken(ctx, source, nil, model); fallback != nil {
+		if fallback := s.probeExistingAccessToken(ctx, source, nil, model); fallback != nil {
 			return fallback, nil
 		}
 		return &codexRegistrationRefreshProbeResult{
@@ -1155,8 +1159,8 @@ func (s *CodexRegistrationService) loadSourceRecord(path string) (codexRegistrat
 	record.LastRefresh = readTimeFromMap(payload, "last_refresh", "last_refresh_at")
 
 	if record.Type == "codex" {
-		if record.Email == "" || record.AccountID == "" || (record.RefreshToken == "" && record.AccessToken == "") {
-			return record, metadata, fmt.Errorf("missing mandatory source fields: refresh_token/access_token/email/account_id")
+		if record.Email == "" || (record.RefreshToken == "" && record.AccessToken == "") {
+			return record, metadata, fmt.Errorf("missing mandatory source fields: refresh_token/access_token/email")
 		}
 	}
 	return record, metadata, nil

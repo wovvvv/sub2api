@@ -1482,6 +1482,73 @@ func TestCodexRegistrationScanAndProbe(t *testing.T) {
 		require.Equal(t, []int64{2, 3}, creator.createdInputs[0].GroupIDs)
 	})
 
+	t.Run("scan and import tolerate missing account id when refresh fills it", func(t *testing.T) {
+		tempDir := t.TempDir()
+		sourcePath := filepath.Join(tempDir, "missing-account-id.json")
+		require.NoError(t, writeJSONFile(sourcePath, map[string]any{
+			"type":          "codex",
+			"refresh_token": "rt-missing-account-id",
+			"email":         "filled@example.com",
+		}))
+
+		probeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ok":true}`))
+		}))
+		defer probeServer.Close()
+
+		repo := newCodexCandidateRepoStub()
+		oauth := &codexOAuthRefresherStub{
+			outcomes: map[string]codexOAuthOutcome{
+				"rt-missing-account-id": {
+					info: &OpenAITokenInfo{
+						AccessToken:      "at-filled",
+						RefreshToken:     "rt-filled",
+						ExpiresAt:        time.Now().Add(time.Hour).Unix(),
+						Email:            "filled@example.com",
+						ChatGPTAccountID: "acct-filled",
+					},
+				},
+				"rt-filled": {
+					info: &OpenAITokenInfo{
+						AccessToken:      "at-filled-2",
+						RefreshToken:     "rt-filled-2",
+						ExpiresAt:        time.Now().Add(time.Hour).Unix(),
+						Email:            "filled@example.com",
+						ChatGPTAccountID: "acct-filled",
+					},
+				},
+			},
+		}
+		creator := &codexAccountCreatorStub{}
+
+		svc := NewCodexRegistrationService(&config.Config{CodexRegistration: config.CodexRegistrationConfig{
+			ScanWorkers:         1,
+			ProbeTimeoutSeconds: 1,
+		}}, repo, &codexAccountReaderStub{}, oauth, creator)
+		svc.sourceDir = tempDir
+		svc.probeURL = probeServer.URL + "/backend-api/codex/responses/compact"
+
+		scanned, err := svc.Scan(context.Background(), "")
+		require.NoError(t, err)
+		require.Len(t, scanned, 1)
+		require.Equal(t, CodexRegistrationLivenessAlive, scanned[0].LivenessStatus)
+		require.Equal(t, "acct-filled", scanned[0].AccountID)
+
+		require.NoError(t, svc.Stage(context.Background(), []int64{scanned[0].ID}))
+
+		result, err := svc.Import(context.Background(), CodexRegistrationImportInput{
+			CandidateIDs: []int64{scanned[0].ID},
+			GroupIDs:     []int64{11},
+		})
+		require.NoError(t, err)
+		require.Equal(t, []int64{scanned[0].ID}, result.ImportedIDs)
+		require.Empty(t, result.Failed)
+		require.Len(t, creator.createdInputs, 1)
+		require.Equal(t, "acct-filled", creator.createdInputs[0].Credentials["chatgpt_account_id"])
+		require.Equal(t, "acct-filled", creator.createdInputs[0].Credentials["account_id"])
+	})
+
 	t.Run("import rechecks duplicates immediately before create account", func(t *testing.T) {
 		tempDir := t.TempDir()
 		sourcePath := filepath.Join(tempDir, "staged-race.json")
