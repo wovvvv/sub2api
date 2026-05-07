@@ -16,8 +16,6 @@ import (
 
 var authProviderTypes = map[string]struct{}{
 	"email":   {},
-	"github":  {},
-	"google":  {},
 	"linuxdo": {},
 	"oidc":    {},
 	"wechat":  {},

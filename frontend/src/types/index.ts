@@ -34,7 +34,7 @@ export interface NotifyEmailEntry {
 
 // ==================== User & Auth Types ====================
 
-export type UserAuthProvider = 'email' | 'linuxdo' | 'oidc' | 'wechat' | 'github' | 'google'
+export type UserAuthProvider = 'email' | 'linuxdo' | 'oidc' | 'wechat'
 
 export interface UserAuthBindingStatus {
   bound?: boolean
@@ -168,7 +168,6 @@ export interface CustomMenuItem {
   label: string
   icon_svg: string
   url: string
-  page_slug?: string
   visibility: 'user' | 'admin'
   sort_order: number
 }
@@ -198,7 +197,6 @@ export interface PublicSettings {
   home_content: string
   hide_ccs_import_button: boolean
   payment_enabled: boolean
-  risk_control_enabled: boolean
   table_default_page_size: number
   table_page_size_options: number[]
   custom_menu_items: CustomMenuItem[]
@@ -210,8 +208,6 @@ export interface PublicSettings {
   wechat_oauth_mobile_enabled?: boolean
   oidc_oauth_enabled: boolean
   oidc_oauth_provider_name: string
-  github_oauth_enabled: boolean
-  google_oauth_enabled: boolean
   backend_mode_enabled: boolean
   version: string
   balance_low_notify_enabled: boolean
@@ -496,10 +492,7 @@ export interface Group {
   daily_limit_usd: number | null
   weekly_limit_usd: number | null
   monthly_limit_usd: number | null
-  // 图片生成计费配置
-  allow_image_generation: boolean
-  image_rate_independent: boolean
-  image_rate_multiplier: number
+  // 图片生成计费配置（仅 antigravity 平台使用）
   image_price_1k: number | null
   image_price_2k: number | null
   image_price_4k: number | null
@@ -609,9 +602,6 @@ export interface CreateGroupRequest {
   daily_limit_usd?: number | null
   weekly_limit_usd?: number | null
   monthly_limit_usd?: number | null
-  allow_image_generation?: boolean
-  image_rate_independent?: boolean
-  image_rate_multiplier?: number
   image_price_1k?: number | null
   image_price_2k?: number | null
   image_price_4k?: number | null
@@ -637,9 +627,6 @@ export interface UpdateGroupRequest {
   daily_limit_usd?: number | null
   weekly_limit_usd?: number | null
   monthly_limit_usd?: number | null
-  allow_image_generation?: boolean
-  image_rate_independent?: boolean
-  image_rate_multiplier?: number
   image_price_1k?: number | null
   image_price_2k?: number | null
   image_price_4k?: number | null
@@ -656,7 +643,7 @@ export interface UpdateGroupRequest {
 // ==================== Account & Proxy Types ====================
 
 export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity'
-export type AccountType = 'oauth' | 'setup-token' | 'apikey' | 'upstream' | 'bedrock' | 'service_account'
+export type AccountType = 'oauth' | 'setup-token' | 'apikey' | 'upstream' | 'bedrock'
 export type OAuthAddMethod = 'oauth' | 'setup-token'
 export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h'
 
@@ -727,6 +714,97 @@ export interface ProxyQualityCheckResult {
   challenge_count: number
   checked_at: number
   items: ProxyQualityCheckItem[]
+}
+
+// ==================== Codex Registration Types ====================
+
+export type CodexRegistrationLivenessStatus = 'alive' | 'dead' | 'invalid' | 'error'
+
+export type CodexRegistrationWorkflowState = 'detected' | 'staged' | 'duplicate' | 'imported'
+
+export interface CodexRegistrationCandidate {
+  id: number
+  source_path: string
+  source_filename: string
+  source_mtime?: string
+  source_fingerprint: string
+  email: string
+  account_id: string
+  type: string
+  expires_at?: string
+  last_refresh_at?: string
+  liveness_status: CodexRegistrationLivenessStatus
+  workflow_state: CodexRegistrationWorkflowState
+  status_reason: string
+  last_checked_at?: string
+  imported_account_id?: number
+  imported_at?: string
+  created_at?: string
+  updated_at?: string
+  can_stage: boolean
+  can_unstage: boolean
+  can_import: boolean
+}
+
+export interface CodexRegistrationScanResponse {
+  scanned: number
+  candidates: CodexRegistrationCandidate[]
+}
+
+export interface CodexRegistrationScanRequest {
+  model?: string
+}
+
+export interface CodexRegistrationListResponse {
+  total: number
+  items: CodexRegistrationCandidate[]
+}
+
+export interface CodexRegistrationListFilters {
+  liveness_status?: CodexRegistrationLivenessStatus
+  workflow_state?: CodexRegistrationWorkflowState
+  q?: string
+}
+
+export interface CodexRegistrationSelectResponse {
+  selected: number
+}
+
+export interface CodexRegistrationUnselectResponse {
+  unselected: number
+}
+
+export interface CodexRegistrationClearResponse {
+  cleared: number
+}
+
+export interface CodexRegistrationImportRequest {
+  candidate_ids: number[]
+  group_ids: number[]
+  proxy_id?: number
+  notes?: string
+  concurrency?: number
+  load_factor?: number
+  priority?: number
+  rate_multiplier?: number
+  import_models?: boolean
+}
+
+export interface CodexRegistrationImportResponse {
+  imported_ids: number[]
+  failed: Record<string, string>
+}
+
+export interface OpenAIOAuthDetectionProbeRequest {
+  account_ids: number[]
+  model?: string
+}
+
+export interface OpenAIOAuthDetectionProbeResponse {
+  checked: number
+  healthy: number
+  unauthorized: number
+  failed: Record<string, string>
 }
 
 // Gemini credentials structure for OAuth and API Key authentication

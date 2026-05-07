@@ -475,4 +475,21 @@ describe('Navigation Integration Tests', () => {
       wrapper.unmount()
     })
   })
+
+  describe('管理员账号注册导航', () => {
+    it('主路由应注册 /admin/account-registration 页面', async () => {
+      const routerModule = await import('@/router')
+      const appRouter = routerModule.default
+      const target = appRouter.getRoutes().find((routeRecord) => routeRecord.path === '/admin/account-registration')
+
+      expect(target).toBeTruthy()
+      expect(target?.name).toBe('AdminAccountRegistration')
+      expect(target?.meta.requiresAdmin).toBe(true)
+
+      const viewLoader = target?.components?.default
+      expect(typeof viewLoader).toBe('function')
+      const resolved = await (viewLoader as () => Promise<{ default: unknown }>)()
+      expect(resolved.default).toBeTruthy()
+    })
+  })
 })

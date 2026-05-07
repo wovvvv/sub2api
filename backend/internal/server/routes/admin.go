@@ -35,6 +35,9 @@ func RegisterAdminRoutes(
 		// OpenAI OAuth
 		registerOpenAIOAuthRoutes(admin, h)
 
+		// 账号注册（Codex）
+		registerCodexAccountRegistrationRoutes(admin, h)
+
 		// Gemini OAuth
 		registerGeminiOAuthRoutes(admin, h)
 
@@ -92,25 +95,8 @@ func RegisterAdminRoutes(
 		// 渠道监控
 		registerChannelMonitorRoutes(admin, h)
 
-		// 风控中心
-		registerContentModerationRoutes(admin, h)
-
 		// 邀请返利（专属用户管理）
 		registerAffiliateRoutes(admin, h)
-	}
-}
-
-func registerContentModerationRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
-	risk := admin.Group("/risk-control")
-	{
-		risk.GET("/config", h.Admin.ContentModeration.GetConfig)
-		risk.PUT("/config", h.Admin.ContentModeration.UpdateConfig)
-		risk.POST("/api-keys/test", h.Admin.ContentModeration.TestAPIKeys)
-		risk.GET("/status", h.Admin.ContentModeration.GetStatus)
-		risk.GET("/logs", h.Admin.ContentModeration.ListLogs)
-		risk.POST("/users/:user_id/unban", h.Admin.ContentModeration.UnbanUser)
-		risk.DELETE("/hashes", h.Admin.ContentModeration.DeleteFlaggedHash)
-		risk.DELETE("/hashes/all", h.Admin.ContentModeration.ClearFlaggedHashes)
 	}
 }
 
@@ -245,7 +231,6 @@ func registerUserManagementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		users.GET("/:id/balance-history", h.Admin.User.GetBalanceHistory)
 		users.POST("/:id/replace-group", h.Admin.User.ReplaceGroup)
 		users.GET("/:id/rpm-status", h.Admin.User.GetUserRPMStatus)
-		users.POST("/batch-concurrency", h.Admin.User.BatchUpdateConcurrency)
 
 		// User attribute values
 		users.GET("/:id/attributes", h.Admin.UserAttribute.GetUserAttributes)
@@ -302,6 +287,7 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		accounts.DELETE("/:id/temp-unschedulable", h.Admin.Account.ClearTempUnschedulable)
 		accounts.POST("/:id/schedulable", h.Admin.Account.SetSchedulable)
 		accounts.GET("/:id/models", h.Admin.Account.GetAvailableModels)
+		accounts.POST("/import-openai-models", h.Admin.Account.ImportOpenAIModels)
 		accounts.POST("/batch", h.Admin.Account.BatchCreate)
 		accounts.GET("/data", h.Admin.Account.ExportData)
 		accounts.POST("/data", h.Admin.Account.ImportData)
@@ -344,6 +330,25 @@ func registerOpenAIOAuthRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		openai.POST("/refresh-token", h.Admin.OpenAIOAuth.RefreshToken)
 		openai.POST("/accounts/:id/refresh", h.Admin.OpenAIOAuth.RefreshAccountToken)
 		openai.POST("/create-from-oauth", h.Admin.OpenAIOAuth.CreateAccountFromOAuth)
+	}
+}
+
+func registerCodexAccountRegistrationRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	accountRegistration := admin.Group("/account-registration")
+	{
+		codex := accountRegistration.Group("/codex")
+		{
+			codex.POST("/scan", h.Admin.CodexRegistration.Scan)
+			codex.GET("/candidates", h.Admin.CodexRegistration.ListCandidates)
+			codex.DELETE("/candidates", h.Admin.CodexRegistration.ClearCandidates)
+			codex.POST("/candidates/select", h.Admin.CodexRegistration.SelectCandidates)
+			codex.POST("/candidates/unselect", h.Admin.CodexRegistration.UnselectCandidates)
+			codex.POST("/import", h.Admin.CodexRegistration.ImportCandidates)
+		}
+		openAIOAuthDetection := accountRegistration.Group("/openai-oauth-detection")
+		{
+			openAIOAuthDetection.POST("/probe", h.Admin.OpenAIOAuthDetection.ProbeAccounts)
+		}
 	}
 }
 
@@ -426,9 +431,6 @@ func registerSettingsRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		// 529过载冷却配置
 		adminSettings.GET("/overload-cooldown", h.Admin.Setting.GetOverloadCooldownSettings)
 		adminSettings.PUT("/overload-cooldown", h.Admin.Setting.UpdateOverloadCooldownSettings)
-		// 429默认回避配置
-		adminSettings.GET("/rate-limit-429-cooldown", h.Admin.Setting.GetRateLimit429CooldownSettings)
-		adminSettings.PUT("/rate-limit-429-cooldown", h.Admin.Setting.UpdateRateLimit429CooldownSettings)
 		// 流超时处理配置
 		adminSettings.GET("/stream-timeout", h.Admin.Setting.GetStreamTimeoutSettings)
 		adminSettings.PUT("/stream-timeout", h.Admin.Setting.UpdateStreamTimeoutSettings)
@@ -623,16 +625,11 @@ func registerChannelMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 func registerAffiliateRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	affiliates := admin.Group("/affiliates")
 	{
-		affiliates.GET("/invites", h.Admin.Affiliate.ListInviteRecords)
-		affiliates.GET("/rebates", h.Admin.Affiliate.ListRebateRecords)
-		affiliates.GET("/transfers", h.Admin.Affiliate.ListTransferRecords)
-
 		users := affiliates.Group("/users")
 		{
 			users.GET("", h.Admin.Affiliate.ListUsers)
 			users.GET("/lookup", h.Admin.Affiliate.LookupUsers)
 			users.POST("/batch-rate", h.Admin.Affiliate.BatchSetRate)
-			users.GET("/:user_id/overview", h.Admin.Affiliate.GetUserOverview)
 			users.PUT("/:user_id", h.Admin.Affiliate.UpdateUserSettings)
 			users.DELETE("/:user_id", h.Admin.Affiliate.ClearUserSettings)
 		}

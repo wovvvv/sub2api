@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"net/http"
@@ -60,6 +61,8 @@ type AccountHandler struct {
 	tokenCacheInvalidator   service.TokenCacheInvalidator
 }
 
+var officialOpenAIModelsURL = "https://api.openai.com/v1/models"
+
 // NewAccountHandler creates a new admin account handler
 func NewAccountHandler(
 	adminService service.AdminService,
@@ -98,7 +101,7 @@ type CreateAccountRequest struct {
 	Name                    string         `json:"name" binding:"required"`
 	Notes                   *string        `json:"notes"`
 	Platform                string         `json:"platform" binding:"required"`
-	Type                    string         `json:"type" binding:"required,oneof=oauth setup-token apikey upstream bedrock service_account"`
+	Type                    string         `json:"type" binding:"required,oneof=oauth setup-token apikey upstream bedrock"`
 	Credentials             map[string]any `json:"credentials" binding:"required"`
 	Extra                   map[string]any `json:"extra"`
 	ProxyID                 *int64         `json:"proxy_id"`
@@ -117,7 +120,7 @@ type CreateAccountRequest struct {
 type UpdateAccountRequest struct {
 	Name                    string         `json:"name"`
 	Notes                   *string        `json:"notes"`
-	Type                    string         `json:"type" binding:"omitempty,oneof=oauth setup-token apikey upstream bedrock service_account"`
+	Type                    string         `json:"type" binding:"omitempty,oneof=oauth setup-token apikey upstream bedrock"`
 	Credentials             map[string]any `json:"credentials"`
 	Extra                   map[string]any `json:"extra"`
 	ProxyID                 *int64         `json:"proxy_id"`
@@ -134,29 +137,32 @@ type UpdateAccountRequest struct {
 
 // BulkUpdateAccountsRequest represents the payload for bulk editing accounts
 type BulkUpdateAccountsRequest struct {
-	AccountIDs              []int64                   `json:"account_ids"`
-	Filters                 *BulkUpdateAccountFilters `json:"filters"`
-	Name                    string                    `json:"name"`
-	ProxyID                 *int64                    `json:"proxy_id"`
-	Concurrency             *int                      `json:"concurrency"`
-	Priority                *int                      `json:"priority"`
-	RateMultiplier          *float64                  `json:"rate_multiplier"`
-	LoadFactor              *int                      `json:"load_factor"`
-	Status                  string                    `json:"status" binding:"omitempty,oneof=active inactive error"`
-	Schedulable             *bool                     `json:"schedulable"`
-	GroupIDs                *[]int64                  `json:"group_ids"`
-	Credentials             map[string]any            `json:"credentials"`
-	Extra                   map[string]any            `json:"extra"`
-	ConfirmMixedChannelRisk *bool                     `json:"confirm_mixed_channel_risk"` // 用户确认混合渠道风险
+	AccountIDs              []int64        `json:"account_ids" binding:"required,min=1"`
+	Name                    string         `json:"name"`
+	ProxyID                 *int64         `json:"proxy_id"`
+	Concurrency             *int           `json:"concurrency"`
+	Priority                *int           `json:"priority"`
+	RateMultiplier          *float64       `json:"rate_multiplier"`
+	LoadFactor              *int           `json:"load_factor"`
+	Status                  string         `json:"status" binding:"omitempty,oneof=active inactive error"`
+	Schedulable             *bool          `json:"schedulable"`
+	GroupIDs                *[]int64       `json:"group_ids"`
+	Credentials             map[string]any `json:"credentials"`
+	Extra                   map[string]any `json:"extra"`
+	ConfirmMixedChannelRisk *bool          `json:"confirm_mixed_channel_risk"` // 用户确认混合渠道风险
 }
 
-type BulkUpdateAccountFilters struct {
-	Platform    string `json:"platform"`
-	Type        string `json:"type"`
-	Status      string `json:"status"`
-	Group       string `json:"group"`
-	Search      string `json:"search"`
-	PrivacyMode string `json:"privacy_mode"`
+type ImportOpenAIModelsRequest struct {
+	AccountID *int64 `json:"account_id"`
+	Platform  string `json:"platform"`
+	Type      string `json:"type"`
+	BaseURL   string `json:"base_url"`
+	APIKey    string `json:"api_key"`
+}
+
+type ImportOpenAIModelsResponse struct {
+	Models   []string `json:"models"`
+	Fallback bool     `json:"fallback"`
 }
 
 // CheckMixedChannelRequest represents check mixed channel risk request
@@ -528,10 +534,6 @@ func (h *AccountHandler) Create(c *gin.Context) {
 	// 确定是否跳过混合渠道检查
 	skipCheck := req.ConfirmMixedChannelRisk != nil && *req.ConfirmMixedChannelRisk
 
-	// 捕获闭包内创建的账号引用，用于创建成功后触发异步探测。
-	// 幂等重放时闭包不会执行 → createdAccount 为 nil → 不重复调度。
-	var createdAccount *service.Account
-
 	result, err := executeAdminIdempotent(c, "admin.accounts.create", req, service.DefaultWriteIdempotencyTTL(), func(ctx context.Context) (any, error) {
 		account, execErr := h.adminService.CreateAccount(ctx, &service.CreateAccountInput{
 			Name:                  req.Name,
@@ -553,7 +555,6 @@ func (h *AccountHandler) Create(c *gin.Context) {
 		if execErr != nil {
 			return nil, execErr
 		}
-		createdAccount = account
 		// Antigravity OAuth: 新账号直接设置隐私
 		h.adminService.ForceAntigravityPrivacy(ctx, account)
 		// OpenAI OAuth: 新账号直接设置隐私
@@ -582,9 +583,6 @@ func (h *AccountHandler) Create(c *gin.Context) {
 	if result != nil && result.Replayed {
 		c.Header("X-Idempotency-Replayed", "true")
 	}
-	// OpenAI APIKey 账号创建后异步探测上游 /v1/responses 能力。
-	// 探测失败不影响账号创建响应。
-	h.scheduleOpenAIResponsesProbe(createdAccount)
 	response.Success(c, result.Data)
 }
 
@@ -645,37 +643,7 @@ func (h *AccountHandler) Update(c *gin.Context) {
 		return
 	}
 
-	// OpenAI APIKey: credentials 修改后重新探测上游能力（base_url/api_key 可能变更）。
-	// 异步执行，探测失败不影响账号更新响应。
-	if len(req.Credentials) > 0 {
-		h.scheduleOpenAIResponsesProbe(account)
-	}
-
 	response.Success(c, h.buildAccountResponseWithRuntime(c.Request.Context(), account))
-}
-
-// scheduleOpenAIResponsesProbe 异步触发 OpenAI APIKey 账号的 Responses API 能力探测。
-//
-// 仅对 platform=openai && type=apikey 账号生效；其他账号无操作。
-// 探测本身在 goroutine 中执行（会发一次 HTTP 请求到上游），不会阻塞
-// 当前请求。探测错误仅记录日志，不向上下文传播：探测失败时标记保持缺失，
-// 网关会按"现状即证据"默认走 Responses。
-func (h *AccountHandler) scheduleOpenAIResponsesProbe(account *service.Account) {
-	if account == nil || account.Platform != service.PlatformOpenAI || account.Type != service.AccountTypeAPIKey {
-		return
-	}
-	if h.accountTestService == nil {
-		return
-	}
-	accountID := account.ID
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				slog.Error("openai_responses_probe_panic", "account_id", accountID, "recover", r)
-			}
-		}()
-		h.accountTestService.ProbeOpenAIAPIKeyResponsesSupport(context.Background(), accountID)
-	}()
 }
 
 // Delete handles deleting an account
@@ -1269,8 +1237,6 @@ func (h *AccountHandler) BatchCreate(c *gin.Context) {
 					openaiPrivacyAccounts = append(openaiPrivacyAccounts, account)
 				}
 			}
-			// OpenAI APIKey 账号异步探测 /v1/responses 能力。
-			h.scheduleOpenAIResponsesProbe(account)
 			success++
 			results = append(results, gin.H{
 				"name":    item.Name,
@@ -1419,10 +1385,6 @@ func (h *AccountHandler) BulkUpdate(c *gin.Context) {
 		response.BadRequest(c, "rate_multiplier must be >= 0")
 		return
 	}
-	if len(req.AccountIDs) == 0 && req.Filters == nil {
-		response.BadRequest(c, "account_ids or filters is required")
-		return
-	}
 	// base_rpm 输入校验：负值归零，超过 10000 截断
 	sanitizeExtraBaseRPM(req.Extra)
 
@@ -1448,7 +1410,6 @@ func (h *AccountHandler) BulkUpdate(c *gin.Context) {
 
 	result, err := h.adminService.BulkUpdateAccounts(c.Request.Context(), &service.BulkUpdateAccountsInput{
 		AccountIDs:            req.AccountIDs,
-		Filters:               toServiceBulkUpdateAccountFilters(req.Filters),
 		Name:                  req.Name,
 		ProxyID:               req.ProxyID,
 		Concurrency:           req.Concurrency,
@@ -1482,20 +1443,6 @@ func (h *AccountHandler) BulkUpdate(c *gin.Context) {
 	}
 
 	response.Success(c, result)
-}
-
-func toServiceBulkUpdateAccountFilters(filters *BulkUpdateAccountFilters) *service.BulkUpdateAccountFilters {
-	if filters == nil {
-		return nil
-	}
-	return &service.BulkUpdateAccountFilters{
-		Platform:    filters.Platform,
-		Type:        filters.Type,
-		Status:      filters.Status,
-		Group:       filters.Group,
-		Search:      filters.Search,
-		PrivacyMode: filters.PrivacyMode,
-	}
 }
 
 // ========== OAuth Handlers ==========
@@ -1992,6 +1939,180 @@ func (h *AccountHandler) GetAvailableModels(c *gin.Context) {
 	}
 
 	response.Success(c, models)
+}
+
+// ImportOpenAIModels imports model ids from an OpenAI-compatible /v1/models endpoint.
+// POST /api/v1/admin/accounts/import-openai-models
+func (h *AccountHandler) ImportOpenAIModels(c *gin.Context) {
+	var req ImportOpenAIModelsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	account, err := h.resolveOpenAIModelsImportAccount(c.Request.Context(), req)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	models, fallback, err := h.importOpenAIModels(c.Request.Context(), account, req)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, ImportOpenAIModelsResponse{
+		Models:   models,
+		Fallback: fallback,
+	})
+}
+
+func (h *AccountHandler) resolveOpenAIModelsImportAccount(ctx context.Context, req ImportOpenAIModelsRequest) (*service.Account, error) {
+	if req.AccountID != nil {
+		account, err := h.adminService.GetAccount(ctx, *req.AccountID)
+		if err != nil {
+			return nil, err
+		}
+		if account == nil || !account.IsOpenAI() {
+			return nil, infraerrors.BadRequest("INVALID_ACCOUNT", "account must be an OpenAI account")
+		}
+		return account, nil
+	}
+
+	if req.Platform != service.PlatformOpenAI {
+		return nil, infraerrors.BadRequest("INVALID_IMPORT_TARGET", "only OpenAI accounts are supported")
+	}
+	if req.Type == service.AccountTypeOAuth {
+		return &service.Account{
+			Platform: service.PlatformOpenAI,
+			Type:     service.AccountTypeOAuth,
+		}, nil
+	}
+	if req.Type != service.AccountTypeAPIKey {
+		return nil, infraerrors.BadRequest("INVALID_IMPORT_TARGET", "unsupported OpenAI account type")
+	}
+	if strings.TrimSpace(req.APIKey) == "" {
+		return nil, infraerrors.BadRequest("API_KEY_REQUIRED", "api_key is required")
+	}
+
+	return &service.Account{
+		Platform: service.PlatformOpenAI,
+		Type:     service.AccountTypeAPIKey,
+		Credentials: map[string]any{
+			"api_key":  strings.TrimSpace(req.APIKey),
+			"base_url": strings.TrimSpace(req.BaseURL),
+		},
+	}, nil
+}
+
+func (h *AccountHandler) importOpenAIModels(ctx context.Context, account *service.Account, req ImportOpenAIModelsRequest) ([]string, bool, error) {
+	if account == nil || !account.IsOpenAI() {
+		return nil, false, infraerrors.BadRequest("INVALID_ACCOUNT", "account must be an OpenAI account")
+	}
+
+	if account.IsOpenAIOAuth() {
+		// OpenAI OAuth accounts in sub2api use the ChatGPT/Codex flow.
+		// Those access tokens commonly lack the api.model.read scope required by
+		// api.openai.com/v1/models, so treat the built-in OpenAI model set as the
+		// canonical import source instead of reporting a misleading fallback.
+		return openai.DefaultModelIDs(), false, nil
+	}
+	if !account.IsOpenAIApiKey() {
+		return nil, false, infraerrors.BadRequest("UNSUPPORTED_ACCOUNT_TYPE", "only OpenAI API key and OAuth accounts are supported")
+	}
+
+	baseURL := strings.TrimSpace(req.BaseURL)
+	if baseURL == "" {
+		baseURL = account.GetOpenAIBaseURL()
+	}
+	apiKey := strings.TrimSpace(req.APIKey)
+	if apiKey == "" {
+		apiKey = account.GetOpenAIApiKey()
+	}
+	if apiKey == "" {
+		return nil, false, infraerrors.BadRequest("API_KEY_REQUIRED", "api_key is required")
+	}
+
+	modelsURL, err := h.resolveOpenAIModelsURL(baseURL)
+	if err != nil {
+		return nil, false, err
+	}
+	models, err := h.fetchOpenAIModels(ctx, modelsURL, apiKey)
+	if err != nil {
+		return nil, false, err
+	}
+	return models, false, nil
+}
+
+func (h *AccountHandler) resolveOpenAIModelsURL(baseURL string) (string, error) {
+	baseURL = strings.TrimSpace(baseURL)
+	if baseURL == "" {
+		baseURL = "https://api.openai.com"
+	}
+	if strings.HasSuffix(strings.TrimRight(baseURL, "/"), "/models") {
+		return strings.TrimRight(baseURL, "/"), nil
+	}
+	if h.accountTestService != nil {
+		normalized, err := h.accountTestService.ValidateUpstreamBaseURL(baseURL)
+		if err != nil {
+			return "", infraerrors.BadRequest("INVALID_BASE_URL", err.Error())
+		}
+		baseURL = normalized
+	}
+	baseURL = strings.TrimRight(baseURL, "/")
+	if strings.HasSuffix(baseURL, "/v1") {
+		return baseURL + "/models", nil
+	}
+	return baseURL + "/v1/models", nil
+}
+
+func (h *AccountHandler) fetchOpenAIModels(ctx context.Context, modelsURL, bearerToken string) ([]string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, modelsURL, nil)
+	if err != nil {
+		return nil, infraerrors.BadRequest("MODEL_IMPORT_FAILED", err.Error())
+	}
+	req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(bearerToken))
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, infraerrors.BadRequest("MODEL_IMPORT_FAILED", err.Error())
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, infraerrors.BadRequest("MODEL_IMPORT_FAILED", fmt.Sprintf("upstream returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body))))
+	}
+
+	var payload struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, infraerrors.BadRequest("MODEL_IMPORT_FAILED", "invalid models response")
+	}
+
+	models := make([]string, 0, len(payload.Data))
+	seen := make(map[string]struct{}, len(payload.Data))
+	for _, item := range payload.Data {
+		modelID := strings.TrimSpace(item.ID)
+		if modelID == "" {
+			continue
+		}
+		if _, ok := seen[modelID]; ok {
+			continue
+		}
+		seen[modelID] = struct{}{}
+		models = append(models, modelID)
+	}
+	if len(models) == 0 {
+		return nil, infraerrors.BadRequest("MODEL_IMPORT_FAILED", "no models returned by upstream")
+	}
+	return models, nil
 }
 
 // SetPrivacy handles setting privacy for a single OpenAI/Antigravity OAuth account

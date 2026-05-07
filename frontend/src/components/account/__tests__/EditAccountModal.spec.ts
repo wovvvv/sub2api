@@ -2,9 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
 
-const { updateAccountMock, checkMixedChannelRiskMock } = vi.hoisted(() => ({
+const { updateAccountMock, checkMixedChannelRiskMock, importOpenAIModelsMock } = vi.hoisted(() => ({
   updateAccountMock: vi.fn(),
-  checkMixedChannelRiskMock: vi.fn()
+  checkMixedChannelRiskMock: vi.fn(),
+  importOpenAIModelsMock: vi.fn()
 }))
 
 vi.mock('@/stores/app', () => ({
@@ -25,7 +26,8 @@ vi.mock('@/api/admin', () => ({
   adminAPI: {
     accounts: {
       update: updateAccountMock,
-      checkMixedChannelRisk: checkMixedChannelRiskMock
+      checkMixedChannelRisk: checkMixedChannelRiskMock,
+      importOpenAIModels: importOpenAIModelsMock
     },
     settings: {
       getWebSearchEmulationConfig: vi.fn().mockResolvedValue({ enabled: false, providers: [] }),
@@ -190,6 +192,31 @@ describe('EditAccountModal', () => {
     })
   })
 
+  it('imports OpenAI models into whitelist for OAuth accounts', async () => {
+    const account = buildAccount()
+    account.type = 'oauth'
+    account.credentials = {
+      access_token: 'oauth-token',
+      model_mapping: {
+        'gpt-5.2': 'gpt-5.2'
+      }
+    }
+
+    importOpenAIModelsMock.mockReset()
+    importOpenAIModelsMock.mockResolvedValue({
+      models: ['gpt-5.4', 'gpt-5.3-codex'],
+      fallback: false
+    })
+
+    const wrapper = mountModal(account)
+    await wrapper.findAll('button').find((button) => button.text() === 'admin.accounts.importModels')!.trigger('click')
+
+    expect(importOpenAIModelsMock).toHaveBeenCalledWith({ account_id: 1 })
+    expect(wrapper.get('[data-testid="model-whitelist-value"]').text()).toContain('gpt-5.2')
+    expect(wrapper.get('[data-testid="model-whitelist-value"]').text()).toContain('gpt-5.4')
+    expect(wrapper.get('[data-testid="model-whitelist-value"]').text()).toContain('gpt-5.3-codex')
+  })
+
   it('submits OpenAI compact mode and compact-only model mapping', async () => {
     const account = buildAccount()
     account.extra = {
@@ -215,26 +242,5 @@ describe('EditAccountModal', () => {
     expect(updateAccountMock.mock.calls[0]?.[1]?.credentials?.compact_model_mapping).toEqual({
       'gpt-5.4': 'gpt-5.4-openai-compact'
     })
-  })
-
-  it('submits account-level Codex image generation bridge override', async () => {
-    const account = buildAccount()
-    account.extra = {
-      codex_image_generation_bridge: false,
-      codex_image_generation_bridge_enabled: true
-    }
-    updateAccountMock.mockReset()
-    checkMixedChannelRiskMock.mockReset()
-    checkMixedChannelRiskMock.mockResolvedValue({ has_risk: false })
-    updateAccountMock.mockResolvedValue(account)
-
-    const wrapper = mountModal(account)
-
-    await wrapper.get('button[data-testid="codex-image-bridge-enabled"]').trigger('click')
-    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
-
-    expect(updateAccountMock).toHaveBeenCalledTimes(1)
-    expect(updateAccountMock.mock.calls[0]?.[1]?.extra?.codex_image_generation_bridge).toBe(true)
-    expect(updateAccountMock.mock.calls[0]?.[1]?.extra).not.toHaveProperty('codex_image_generation_bridge_enabled')
   })
 })

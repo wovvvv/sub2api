@@ -11,7 +11,6 @@ type CustomMenuItem struct {
 	Label      string `json:"label"`
 	IconSVG    string `json:"icon_svg"`
 	URL        string `json:"url"`
-	PageSlug   string `json:"page_slug,omitempty"`
 	Visibility string `json:"visibility"` // "user" or "admin"
 	SortOrder  int    `json:"sort_order"`
 }
@@ -34,6 +33,8 @@ type SystemSettings struct {
 	InvitationCodeEnabled            bool     `json:"invitation_code_enabled"`
 	TotpEnabled                      bool     `json:"totp_enabled"`                   // TOTP 双因素认证
 	TotpEncryptionKeyConfigured      bool     `json:"totp_encryption_key_configured"` // TOTP 加密密钥是否已配置
+	URLAllowlistEnabled              bool     `json:"url_allowlist_enabled"`
+	URLAllowlistUpstreamHosts        []string `json:"url_allowlist_upstream_hosts"`
 
 	SMTPHost               string `json:"smtp_host"`
 	SMTPPort               int    `json:"smtp_port"`
@@ -92,17 +93,6 @@ type SystemSettings struct {
 	OIDCConnectUserInfoIDPath         string `json:"oidc_connect_userinfo_id_path"`
 	OIDCConnectUserInfoUsernamePath   string `json:"oidc_connect_userinfo_username_path"`
 
-	GitHubOAuthEnabled                bool   `json:"github_oauth_enabled"`
-	GitHubOAuthClientID               string `json:"github_oauth_client_id"`
-	GitHubOAuthClientSecretConfigured bool   `json:"github_oauth_client_secret_configured"`
-	GitHubOAuthRedirectURL            string `json:"github_oauth_redirect_url"`
-	GitHubOAuthFrontendRedirectURL    string `json:"github_oauth_frontend_redirect_url"`
-	GoogleOAuthEnabled                bool   `json:"google_oauth_enabled"`
-	GoogleOAuthClientID               string `json:"google_oauth_client_id"`
-	GoogleOAuthClientSecretConfigured bool   `json:"google_oauth_client_secret_configured"`
-	GoogleOAuthRedirectURL            string `json:"google_oauth_redirect_url"`
-	GoogleOAuthFrontendRedirectURL    string `json:"google_oauth_frontend_redirect_url"`
-
 	SiteName                    string           `json:"site_name"`
 	SiteLogo                    string           `json:"site_logo"`
 	SiteSubtitle                string           `json:"site_subtitle"`
@@ -154,10 +144,9 @@ type SystemSettings struct {
 	BackendModeEnabled bool `json:"backend_mode_enabled"`
 
 	// Gateway forwarding behavior
-	EnableFingerprintUnification       bool `json:"enable_fingerprint_unification"`
-	EnableMetadataPassthrough          bool `json:"enable_metadata_passthrough"`
-	EnableCCHSigning                   bool `json:"enable_cch_signing"`
-	EnableAnthropicCacheTTL1hInjection bool `json:"enable_anthropic_cache_ttl_1h_injection"`
+	EnableFingerprintUnification bool `json:"enable_fingerprint_unification"`
+	EnableMetadataPassthrough    bool `json:"enable_metadata_passthrough"`
+	EnableCCHSigning             bool `json:"enable_cch_signing"`
 
 	// Web Search Emulation
 	WebSearchEmulationEnabled bool `json:"web_search_emulation_enabled"`
@@ -209,14 +198,8 @@ type SystemSettings struct {
 	// Available Channels feature switch (user-facing aggregate view)
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
 
-	// 风控中心功能开关
-	RiskControlEnabled bool `json:"risk_control_enabled"`
-
 	// Affiliate (邀请返利) feature switch
 	AffiliateEnabled bool `json:"affiliate_enabled"`
-
-	// OpenAI fast/flex policy
-	OpenAIFastPolicySettings *OpenAIFastPolicySettings `json:"openai_fast_policy_settings,omitempty"`
 }
 
 type DefaultSubscriptionSetting struct {
@@ -256,8 +239,6 @@ type PublicSettings struct {
 	WeChatOAuthMobileEnabled         bool             `json:"wechat_oauth_mobile_enabled"`
 	OIDCOAuthEnabled                 bool             `json:"oidc_oauth_enabled"`
 	OIDCOAuthProviderName            string           `json:"oidc_oauth_provider_name"`
-	GitHubOAuthEnabled               bool             `json:"github_oauth_enabled"`
-	GoogleOAuthEnabled               bool             `json:"google_oauth_enabled"`
 	SoraClientEnabled                bool             `json:"sora_client_enabled"`
 	BackendModeEnabled               bool             `json:"backend_mode_enabled"`
 	PaymentEnabled                   bool             `json:"payment_enabled"`
@@ -273,20 +254,12 @@ type PublicSettings struct {
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
 
 	AffiliateEnabled bool `json:"affiliate_enabled"`
-
-	RiskControlEnabled bool `json:"risk_control_enabled"`
 }
 
 // OverloadCooldownSettings 529过载冷却配置 DTO
 type OverloadCooldownSettings struct {
 	Enabled         bool `json:"enabled"`
 	CooldownMinutes int  `json:"cooldown_minutes"`
-}
-
-// RateLimit429CooldownSettings 429默认回避配置 DTO
-type RateLimit429CooldownSettings struct {
-	Enabled         bool `json:"enabled"`
-	CooldownSeconds int  `json:"cooldown_seconds"`
 }
 
 // StreamTimeoutSettings 流超时处理配置 DTO
@@ -321,22 +294,6 @@ type BetaPolicyRule struct {
 // BetaPolicySettings Beta 策略配置 DTO
 type BetaPolicySettings struct {
 	Rules []BetaPolicyRule `json:"rules"`
-}
-
-// OpenAIFastPolicyRule OpenAI fast/flex 策略规则 DTO
-type OpenAIFastPolicyRule struct {
-	ServiceTier          string   `json:"service_tier"`
-	Action               string   `json:"action"`
-	Scope                string   `json:"scope"`
-	ErrorMessage         string   `json:"error_message,omitempty"`
-	ModelWhitelist       []string `json:"model_whitelist,omitempty"`
-	FallbackAction       string   `json:"fallback_action,omitempty"`
-	FallbackErrorMessage string   `json:"fallback_error_message,omitempty"`
-}
-
-// OpenAIFastPolicySettings OpenAI fast 策略配置 DTO
-type OpenAIFastPolicySettings struct {
-	Rules []OpenAIFastPolicyRule `json:"rules"`
 }
 
 // ParseCustomMenuItems parses a JSON string into a slice of CustomMenuItem.

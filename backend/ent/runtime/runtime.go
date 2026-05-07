@@ -16,6 +16,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitordailyrollup"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorhistory"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorrequesttemplate"
+	"github.com/Wei-Shaw/sub2api/ent/codexregistrationcandidate"
 	"github.com/Wei-Shaw/sub2api/ent/errorpassthroughrule"
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
@@ -677,6 +678,127 @@ func init() {
 	channelmonitorrequesttemplate.DefaultBodyOverrideMode = channelmonitorrequesttemplateDescBodyOverrideMode.Default.(string)
 	// channelmonitorrequesttemplate.BodyOverrideModeValidator is a validator for the "body_override_mode" field. It is called by the builders before save.
 	channelmonitorrequesttemplate.BodyOverrideModeValidator = channelmonitorrequesttemplateDescBodyOverrideMode.Validators[0].(func(string) error)
+	codexregistrationcandidateMixin := schema.CodexRegistrationCandidate{}.Mixin()
+	codexregistrationcandidateMixinFields0 := codexregistrationcandidateMixin[0].Fields()
+	_ = codexregistrationcandidateMixinFields0
+	codexregistrationcandidateFields := schema.CodexRegistrationCandidate{}.Fields()
+	_ = codexregistrationcandidateFields
+	// codexregistrationcandidateDescCreatedAt is the schema descriptor for created_at field.
+	codexregistrationcandidateDescCreatedAt := codexregistrationcandidateMixinFields0[0].Descriptor()
+	// codexregistrationcandidate.DefaultCreatedAt holds the default value on creation for the created_at field.
+	codexregistrationcandidate.DefaultCreatedAt = codexregistrationcandidateDescCreatedAt.Default.(func() time.Time)
+	// codexregistrationcandidateDescUpdatedAt is the schema descriptor for updated_at field.
+	codexregistrationcandidateDescUpdatedAt := codexregistrationcandidateMixinFields0[1].Descriptor()
+	// codexregistrationcandidate.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	codexregistrationcandidate.DefaultUpdatedAt = codexregistrationcandidateDescUpdatedAt.Default.(func() time.Time)
+	// codexregistrationcandidate.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	codexregistrationcandidate.UpdateDefaultUpdatedAt = codexregistrationcandidateDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// codexregistrationcandidateDescSourcePath is the schema descriptor for source_path field.
+	codexregistrationcandidateDescSourcePath := codexregistrationcandidateFields[0].Descriptor()
+	// codexregistrationcandidate.SourcePathValidator is a validator for the "source_path" field. It is called by the builders before save.
+	codexregistrationcandidate.SourcePathValidator = func() func(string) error {
+		validators := codexregistrationcandidateDescSourcePath.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(source_path string) error {
+			for _, fn := range fns {
+				if err := fn(source_path); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// codexregistrationcandidateDescSourceFilename is the schema descriptor for source_filename field.
+	codexregistrationcandidateDescSourceFilename := codexregistrationcandidateFields[1].Descriptor()
+	// codexregistrationcandidate.SourceFilenameValidator is a validator for the "source_filename" field. It is called by the builders before save.
+	codexregistrationcandidate.SourceFilenameValidator = func() func(string) error {
+		validators := codexregistrationcandidateDescSourceFilename.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(source_filename string) error {
+			for _, fn := range fns {
+				if err := fn(source_filename); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// codexregistrationcandidateDescSourceFingerprint is the schema descriptor for source_fingerprint field.
+	codexregistrationcandidateDescSourceFingerprint := codexregistrationcandidateFields[3].Descriptor()
+	// codexregistrationcandidate.SourceFingerprintValidator is a validator for the "source_fingerprint" field. It is called by the builders before save.
+	codexregistrationcandidate.SourceFingerprintValidator = func() func(string) error {
+		validators := codexregistrationcandidateDescSourceFingerprint.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(source_fingerprint string) error {
+			for _, fn := range fns {
+				if err := fn(source_fingerprint); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// codexregistrationcandidateDescEmail is the schema descriptor for email field.
+	codexregistrationcandidateDescEmail := codexregistrationcandidateFields[4].Descriptor()
+	// codexregistrationcandidate.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	codexregistrationcandidate.EmailValidator = codexregistrationcandidateDescEmail.Validators[0].(func(string) error)
+	// codexregistrationcandidateDescAccountID is the schema descriptor for account_id field.
+	codexregistrationcandidateDescAccountID := codexregistrationcandidateFields[5].Descriptor()
+	// codexregistrationcandidate.AccountIDValidator is a validator for the "account_id" field. It is called by the builders before save.
+	codexregistrationcandidate.AccountIDValidator = codexregistrationcandidateDescAccountID.Validators[0].(func(string) error)
+	// codexregistrationcandidateDescType is the schema descriptor for type field.
+	codexregistrationcandidateDescType := codexregistrationcandidateFields[6].Descriptor()
+	// codexregistrationcandidate.TypeValidator is a validator for the "type" field. It is called by the builders before save.
+	codexregistrationcandidate.TypeValidator = codexregistrationcandidateDescType.Validators[0].(func(string) error)
+	// codexregistrationcandidateDescLivenessStatus is the schema descriptor for liveness_status field.
+	codexregistrationcandidateDescLivenessStatus := codexregistrationcandidateFields[9].Descriptor()
+	// codexregistrationcandidate.DefaultLivenessStatus holds the default value on creation for the liveness_status field.
+	codexregistrationcandidate.DefaultLivenessStatus = codexregistrationcandidateDescLivenessStatus.Default.(string)
+	// codexregistrationcandidate.LivenessStatusValidator is a validator for the "liveness_status" field. It is called by the builders before save.
+	codexregistrationcandidate.LivenessStatusValidator = func() func(string) error {
+		validators := codexregistrationcandidateDescLivenessStatus.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(liveness_status string) error {
+			for _, fn := range fns {
+				if err := fn(liveness_status); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// codexregistrationcandidateDescWorkflowState is the schema descriptor for workflow_state field.
+	codexregistrationcandidateDescWorkflowState := codexregistrationcandidateFields[10].Descriptor()
+	// codexregistrationcandidate.DefaultWorkflowState holds the default value on creation for the workflow_state field.
+	codexregistrationcandidate.DefaultWorkflowState = codexregistrationcandidateDescWorkflowState.Default.(string)
+	// codexregistrationcandidate.WorkflowStateValidator is a validator for the "workflow_state" field. It is called by the builders before save.
+	codexregistrationcandidate.WorkflowStateValidator = func() func(string) error {
+		validators := codexregistrationcandidateDescWorkflowState.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(workflow_state string) error {
+			for _, fn := range fns {
+				if err := fn(workflow_state); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	errorpassthroughruleMixin := schema.ErrorPassthroughRule{}.Mixin()
 	errorpassthroughruleMixinFields0 := errorpassthroughruleMixin[0].Fields()
 	_ = errorpassthroughruleMixinFields0
@@ -803,62 +925,50 @@ func init() {
 	groupDescDefaultValidityDays := groupFields[10].Descriptor()
 	// group.DefaultDefaultValidityDays holds the default value on creation for the default_validity_days field.
 	group.DefaultDefaultValidityDays = groupDescDefaultValidityDays.Default.(int)
-	// groupDescAllowImageGeneration is the schema descriptor for allow_image_generation field.
-	groupDescAllowImageGeneration := groupFields[11].Descriptor()
-	// group.DefaultAllowImageGeneration holds the default value on creation for the allow_image_generation field.
-	group.DefaultAllowImageGeneration = groupDescAllowImageGeneration.Default.(bool)
-	// groupDescImageRateIndependent is the schema descriptor for image_rate_independent field.
-	groupDescImageRateIndependent := groupFields[12].Descriptor()
-	// group.DefaultImageRateIndependent holds the default value on creation for the image_rate_independent field.
-	group.DefaultImageRateIndependent = groupDescImageRateIndependent.Default.(bool)
-	// groupDescImageRateMultiplier is the schema descriptor for image_rate_multiplier field.
-	groupDescImageRateMultiplier := groupFields[13].Descriptor()
-	// group.DefaultImageRateMultiplier holds the default value on creation for the image_rate_multiplier field.
-	group.DefaultImageRateMultiplier = groupDescImageRateMultiplier.Default.(float64)
 	// groupDescClaudeCodeOnly is the schema descriptor for claude_code_only field.
-	groupDescClaudeCodeOnly := groupFields[17].Descriptor()
+	groupDescClaudeCodeOnly := groupFields[14].Descriptor()
 	// group.DefaultClaudeCodeOnly holds the default value on creation for the claude_code_only field.
 	group.DefaultClaudeCodeOnly = groupDescClaudeCodeOnly.Default.(bool)
 	// groupDescModelRoutingEnabled is the schema descriptor for model_routing_enabled field.
-	groupDescModelRoutingEnabled := groupFields[21].Descriptor()
+	groupDescModelRoutingEnabled := groupFields[18].Descriptor()
 	// group.DefaultModelRoutingEnabled holds the default value on creation for the model_routing_enabled field.
 	group.DefaultModelRoutingEnabled = groupDescModelRoutingEnabled.Default.(bool)
 	// groupDescMcpXMLInject is the schema descriptor for mcp_xml_inject field.
-	groupDescMcpXMLInject := groupFields[22].Descriptor()
+	groupDescMcpXMLInject := groupFields[19].Descriptor()
 	// group.DefaultMcpXMLInject holds the default value on creation for the mcp_xml_inject field.
 	group.DefaultMcpXMLInject = groupDescMcpXMLInject.Default.(bool)
 	// groupDescSupportedModelScopes is the schema descriptor for supported_model_scopes field.
-	groupDescSupportedModelScopes := groupFields[23].Descriptor()
+	groupDescSupportedModelScopes := groupFields[20].Descriptor()
 	// group.DefaultSupportedModelScopes holds the default value on creation for the supported_model_scopes field.
 	group.DefaultSupportedModelScopes = groupDescSupportedModelScopes.Default.([]string)
 	// groupDescSortOrder is the schema descriptor for sort_order field.
-	groupDescSortOrder := groupFields[24].Descriptor()
+	groupDescSortOrder := groupFields[21].Descriptor()
 	// group.DefaultSortOrder holds the default value on creation for the sort_order field.
 	group.DefaultSortOrder = groupDescSortOrder.Default.(int)
 	// groupDescAllowMessagesDispatch is the schema descriptor for allow_messages_dispatch field.
-	groupDescAllowMessagesDispatch := groupFields[25].Descriptor()
+	groupDescAllowMessagesDispatch := groupFields[22].Descriptor()
 	// group.DefaultAllowMessagesDispatch holds the default value on creation for the allow_messages_dispatch field.
 	group.DefaultAllowMessagesDispatch = groupDescAllowMessagesDispatch.Default.(bool)
 	// groupDescRequireOauthOnly is the schema descriptor for require_oauth_only field.
-	groupDescRequireOauthOnly := groupFields[26].Descriptor()
+	groupDescRequireOauthOnly := groupFields[23].Descriptor()
 	// group.DefaultRequireOauthOnly holds the default value on creation for the require_oauth_only field.
 	group.DefaultRequireOauthOnly = groupDescRequireOauthOnly.Default.(bool)
 	// groupDescRequirePrivacySet is the schema descriptor for require_privacy_set field.
-	groupDescRequirePrivacySet := groupFields[27].Descriptor()
+	groupDescRequirePrivacySet := groupFields[24].Descriptor()
 	// group.DefaultRequirePrivacySet holds the default value on creation for the require_privacy_set field.
 	group.DefaultRequirePrivacySet = groupDescRequirePrivacySet.Default.(bool)
 	// groupDescDefaultMappedModel is the schema descriptor for default_mapped_model field.
-	groupDescDefaultMappedModel := groupFields[28].Descriptor()
+	groupDescDefaultMappedModel := groupFields[25].Descriptor()
 	// group.DefaultDefaultMappedModel holds the default value on creation for the default_mapped_model field.
 	group.DefaultDefaultMappedModel = groupDescDefaultMappedModel.Default.(string)
 	// group.DefaultMappedModelValidator is a validator for the "default_mapped_model" field. It is called by the builders before save.
 	group.DefaultMappedModelValidator = groupDescDefaultMappedModel.Validators[0].(func(string) error)
 	// groupDescMessagesDispatchModelConfig is the schema descriptor for messages_dispatch_model_config field.
-	groupDescMessagesDispatchModelConfig := groupFields[29].Descriptor()
+	groupDescMessagesDispatchModelConfig := groupFields[26].Descriptor()
 	// group.DefaultMessagesDispatchModelConfig holds the default value on creation for the messages_dispatch_model_config field.
 	group.DefaultMessagesDispatchModelConfig = groupDescMessagesDispatchModelConfig.Default.(domain.OpenAIMessagesDispatchModelConfig)
 	// groupDescRpmLimit is the schema descriptor for rpm_limit field.
-	groupDescRpmLimit := groupFields[30].Descriptor()
+	groupDescRpmLimit := groupFields[27].Descriptor()
 	// group.DefaultRpmLimit holds the default value on creation for the rpm_limit field.
 	group.DefaultRpmLimit = groupDescRpmLimit.Default.(int)
 	idempotencyrecordMixin := schema.IdempotencyRecord{}.Mixin()

@@ -18,6 +18,8 @@ func ProvideAdminHandlers(
 	backupHandler *admin.BackupHandler,
 	oauthHandler *admin.OAuthHandler,
 	openaiOAuthHandler *admin.OpenAIOAuthHandler,
+	codexRegistrationHandler *admin.CodexRegistrationHandler,
+	openAIOAuthDetectionHandler *admin.OpenAIOAuthDetectionHandler,
 	geminiOAuthHandler *admin.GeminiOAuthHandler,
 	antigravityOAuthHandler *admin.AntigravityOAuthHandler,
 	proxyHandler *admin.ProxyHandler,
@@ -36,7 +38,6 @@ func ProvideAdminHandlers(
 	channelHandler *admin.ChannelHandler,
 	channelMonitorHandler *admin.ChannelMonitorHandler,
 	channelMonitorTemplateHandler *admin.ChannelMonitorRequestTemplateHandler,
-	contentModerationHandler *admin.ContentModerationHandler,
 	paymentHandler *admin.PaymentHandler,
 	affiliateHandler *admin.AffiliateHandler,
 ) *AdminHandlers {
@@ -68,8 +69,9 @@ func ProvideAdminHandlers(
 		Channel:                channelHandler,
 		ChannelMonitor:         channelMonitorHandler,
 		ChannelMonitorTemplate: channelMonitorTemplateHandler,
-		ContentModeration:      contentModerationHandler,
 		Payment:                paymentHandler,
+		CodexRegistration:      codexRegistrationHandler,
+		OpenAIOAuthDetection:   openAIOAuthDetectionHandler,
 		Affiliate:              affiliateHandler,
 	}
 }
@@ -84,6 +86,21 @@ func ProvideSettingHandler(settingService *service.SettingService, buildInfo Bui
 	return NewSettingHandler(settingService, buildInfo.Version)
 }
 
+// ProvideCodexRegistrationHandler creates CodexRegistrationHandler with concrete service deps.
+func ProvideCodexRegistrationHandler(
+	codexRegistrationService *service.CodexRegistrationService,
+	codexRegistrationCandidateRepository service.CodexRegistrationCandidateRepository,
+) *admin.CodexRegistrationHandler {
+	return admin.NewCodexRegistrationHandler(codexRegistrationService, codexRegistrationCandidateRepository)
+}
+
+// ProvideOpenAIOAuthDetectionHandler creates OpenAIOAuthDetectionHandler with concrete service deps.
+func ProvideOpenAIOAuthDetectionHandler(
+	openAIOAuthDetectionService *service.OpenAIOAuthDetectionService,
+) *admin.OpenAIOAuthDetectionHandler {
+	return admin.NewOpenAIOAuthDetectionHandler(openAIOAuthDetectionService)
+}
+
 // ProvideHandlers creates the Handlers struct
 func ProvideHandlers(
 	authHandler *AuthHandler,
@@ -95,6 +112,7 @@ func ProvideHandlers(
 	announcementHandler *AnnouncementHandler,
 	channelMonitorUserHandler *ChannelMonitorUserHandler,
 	adminHandlers *AdminHandlers,
+	accountRegistrationWorkerHandler *AccountRegistrationWorkerHandler,
 	gatewayHandler *GatewayHandler,
 	openaiGatewayHandler *OpenAIGatewayHandler,
 	settingHandler *SettingHandler,
@@ -106,22 +124,23 @@ func ProvideHandlers(
 	_ *service.IdempotencyCleanupService,
 ) *Handlers {
 	return &Handlers{
-		Auth:             authHandler,
-		User:             userHandler,
-		APIKey:           apiKeyHandler,
-		Usage:            usageHandler,
-		Redeem:           redeemHandler,
-		Subscription:     subscriptionHandler,
-		Announcement:     announcementHandler,
-		ChannelMonitor:   channelMonitorUserHandler,
-		Admin:            adminHandlers,
-		Gateway:          gatewayHandler,
-		OpenAIGateway:    openaiGatewayHandler,
-		Setting:          settingHandler,
-		Totp:             totpHandler,
-		Payment:          paymentHandler,
-		PaymentWebhook:   paymentWebhookHandler,
-		AvailableChannel: availableChannelHandler,
+		Auth:                      authHandler,
+		User:                      userHandler,
+		APIKey:                    apiKeyHandler,
+		Usage:                     usageHandler,
+		Redeem:                    redeemHandler,
+		Subscription:              subscriptionHandler,
+		Announcement:              announcementHandler,
+		ChannelMonitor:            channelMonitorUserHandler,
+		Admin:                     adminHandlers,
+		Gateway:                   gatewayHandler,
+		OpenAIGateway:             openaiGatewayHandler,
+		Setting:                   settingHandler,
+		Totp:                      totpHandler,
+		Payment:                   paymentHandler,
+		PaymentWebhook:            paymentWebhookHandler,
+		AvailableChannel:          availableChannelHandler,
+		AccountRegistrationWorker: accountRegistrationWorkerHandler,
 	}
 }
 
@@ -142,6 +161,7 @@ var ProviderSet = wire.NewSet(
 	ProvideSettingHandler,
 	NewPaymentHandler,
 	NewPaymentWebhookHandler,
+	ProvideAccountRegistrationWorkerHandler,
 	NewAvailableChannelHandler,
 
 	// Admin handlers
@@ -154,6 +174,8 @@ var ProviderSet = wire.NewSet(
 	admin.NewBackupHandler,
 	admin.NewOAuthHandler,
 	admin.NewOpenAIOAuthHandler,
+	ProvideCodexRegistrationHandler,
+	ProvideOpenAIOAuthDetectionHandler,
 	admin.NewGeminiOAuthHandler,
 	admin.NewAntigravityOAuthHandler,
 	admin.NewProxyHandler,
@@ -172,7 +194,6 @@ var ProviderSet = wire.NewSet(
 	admin.NewChannelHandler,
 	admin.NewChannelMonitorHandler,
 	admin.NewChannelMonitorRequestTemplateHandler,
-	admin.NewContentModerationHandler,
 	admin.NewPaymentHandler,
 	admin.NewAffiliateHandler,
 

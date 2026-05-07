@@ -98,15 +98,12 @@
     <div class="mb-3">
       <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.accounts.customModelName') }}</label>
       <div class="flex gap-2">
-        <input
+        <textarea
           v-model="customModel"
-          type="text"
           class="input flex-1"
+          rows="3"
           :placeholder="t('admin.accounts.enterCustomModelName')"
-          @keydown.enter.prevent="handleEnter"
-          @compositionstart="isComposing = true"
-          @compositionend="isComposing = false"
-        />
+        ></textarea>
         <button
           type="button"
           @click="addCustom"
@@ -144,7 +141,6 @@ const appStore = useAppStore()
 const showDropdown = ref(false)
 const searchQuery = ref('')
 const customModel = ref('')
-const isComposing = ref(false)
 const normalizedPlatforms = computed(() => {
   const rawPlatforms =
     props.platforms && props.platforms.length > 0
@@ -203,18 +199,27 @@ const toggleModel = (model: string) => {
 }
 
 const addCustom = () => {
-  const model = customModel.value.trim()
-  if (!model) return
-  if (props.modelValue.includes(model)) {
+  const entries = customModel.value
+    .split(/[,\n\r，]+/)
+    .map(model => model.trim())
+    .filter(Boolean)
+  if (entries.length === 0) return
+
+  const nextModels = [...props.modelValue]
+  let added = false
+  for (const model of entries) {
+    if (nextModels.includes(model)) {
+      continue
+    }
+    nextModels.push(model)
+    added = true
+  }
+  if (!added) {
     appStore.showInfo(t('admin.accounts.modelExists'))
     return
   }
-  emit('update:modelValue', [...props.modelValue, model])
+  emit('update:modelValue', nextModels)
   customModel.value = ''
-}
-
-const handleEnter = () => {
-  if (!isComposing.value) addCustom()
 }
 
 const fillRelated = () => {

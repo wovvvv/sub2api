@@ -23,6 +23,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitordailyrollup"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorhistory"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorrequesttemplate"
+	"github.com/Wei-Shaw/sub2api/ent/codexregistrationcandidate"
 	"github.com/Wei-Shaw/sub2api/ent/errorpassthroughrule"
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
@@ -70,6 +71,7 @@ const (
 	TypeChannelMonitorDailyRollup     = "ChannelMonitorDailyRollup"
 	TypeChannelMonitorHistory         = "ChannelMonitorHistory"
 	TypeChannelMonitorRequestTemplate = "ChannelMonitorRequestTemplate"
+	TypeCodexRegistrationCandidate    = "CodexRegistrationCandidate"
 	TypeErrorPassthroughRule          = "ErrorPassthroughRule"
 	TypeGroup                         = "Group"
 	TypeIdempotencyRecord             = "IdempotencyRecord"
@@ -13419,6 +13421,1407 @@ func (m *ChannelMonitorRequestTemplateMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ChannelMonitorRequestTemplate edge %s", name)
 }
 
+// CodexRegistrationCandidateMutation represents an operation that mutates the CodexRegistrationCandidate nodes in the graph.
+type CodexRegistrationCandidateMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *int64
+	created_at             *time.Time
+	updated_at             *time.Time
+	source_path            *string
+	source_filename        *string
+	source_mtime           *time.Time
+	source_fingerprint     *string
+	email                  *string
+	account_id             *string
+	_type                  *string
+	expires_at             *time.Time
+	last_refresh_at        *time.Time
+	liveness_status        *string
+	workflow_state         *string
+	status_reason          *string
+	last_checked_at        *time.Time
+	imported_account_id    *int64
+	addimported_account_id *int64
+	imported_at            *time.Time
+	clearedFields          map[string]struct{}
+	done                   bool
+	oldValue               func(context.Context) (*CodexRegistrationCandidate, error)
+	predicates             []predicate.CodexRegistrationCandidate
+}
+
+var _ ent.Mutation = (*CodexRegistrationCandidateMutation)(nil)
+
+// codexregistrationcandidateOption allows management of the mutation configuration using functional options.
+type codexregistrationcandidateOption func(*CodexRegistrationCandidateMutation)
+
+// newCodexRegistrationCandidateMutation creates new mutation for the CodexRegistrationCandidate entity.
+func newCodexRegistrationCandidateMutation(c config, op Op, opts ...codexregistrationcandidateOption) *CodexRegistrationCandidateMutation {
+	m := &CodexRegistrationCandidateMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeCodexRegistrationCandidate,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withCodexRegistrationCandidateID sets the ID field of the mutation.
+func withCodexRegistrationCandidateID(id int64) codexregistrationcandidateOption {
+	return func(m *CodexRegistrationCandidateMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *CodexRegistrationCandidate
+		)
+		m.oldValue = func(ctx context.Context) (*CodexRegistrationCandidate, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().CodexRegistrationCandidate.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withCodexRegistrationCandidate sets the old CodexRegistrationCandidate of the mutation.
+func withCodexRegistrationCandidate(node *CodexRegistrationCandidate) codexregistrationcandidateOption {
+	return func(m *CodexRegistrationCandidateMutation) {
+		m.oldValue = func(context.Context) (*CodexRegistrationCandidate, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m CodexRegistrationCandidateMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m CodexRegistrationCandidateMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *CodexRegistrationCandidateMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *CodexRegistrationCandidateMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().CodexRegistrationCandidate.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *CodexRegistrationCandidateMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *CodexRegistrationCandidateMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *CodexRegistrationCandidateMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *CodexRegistrationCandidateMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetSourcePath sets the "source_path" field.
+func (m *CodexRegistrationCandidateMutation) SetSourcePath(s string) {
+	m.source_path = &s
+}
+
+// SourcePath returns the value of the "source_path" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) SourcePath() (r string, exists bool) {
+	v := m.source_path
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourcePath returns the old "source_path" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldSourcePath(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourcePath is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourcePath requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourcePath: %w", err)
+	}
+	return oldValue.SourcePath, nil
+}
+
+// ResetSourcePath resets all changes to the "source_path" field.
+func (m *CodexRegistrationCandidateMutation) ResetSourcePath() {
+	m.source_path = nil
+}
+
+// SetSourceFilename sets the "source_filename" field.
+func (m *CodexRegistrationCandidateMutation) SetSourceFilename(s string) {
+	m.source_filename = &s
+}
+
+// SourceFilename returns the value of the "source_filename" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) SourceFilename() (r string, exists bool) {
+	v := m.source_filename
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceFilename returns the old "source_filename" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldSourceFilename(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceFilename is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceFilename requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceFilename: %w", err)
+	}
+	return oldValue.SourceFilename, nil
+}
+
+// ResetSourceFilename resets all changes to the "source_filename" field.
+func (m *CodexRegistrationCandidateMutation) ResetSourceFilename() {
+	m.source_filename = nil
+}
+
+// SetSourceMtime sets the "source_mtime" field.
+func (m *CodexRegistrationCandidateMutation) SetSourceMtime(t time.Time) {
+	m.source_mtime = &t
+}
+
+// SourceMtime returns the value of the "source_mtime" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) SourceMtime() (r time.Time, exists bool) {
+	v := m.source_mtime
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceMtime returns the old "source_mtime" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldSourceMtime(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceMtime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceMtime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceMtime: %w", err)
+	}
+	return oldValue.SourceMtime, nil
+}
+
+// ResetSourceMtime resets all changes to the "source_mtime" field.
+func (m *CodexRegistrationCandidateMutation) ResetSourceMtime() {
+	m.source_mtime = nil
+}
+
+// SetSourceFingerprint sets the "source_fingerprint" field.
+func (m *CodexRegistrationCandidateMutation) SetSourceFingerprint(s string) {
+	m.source_fingerprint = &s
+}
+
+// SourceFingerprint returns the value of the "source_fingerprint" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) SourceFingerprint() (r string, exists bool) {
+	v := m.source_fingerprint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceFingerprint returns the old "source_fingerprint" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldSourceFingerprint(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceFingerprint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceFingerprint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceFingerprint: %w", err)
+	}
+	return oldValue.SourceFingerprint, nil
+}
+
+// ResetSourceFingerprint resets all changes to the "source_fingerprint" field.
+func (m *CodexRegistrationCandidateMutation) ResetSourceFingerprint() {
+	m.source_fingerprint = nil
+}
+
+// SetEmail sets the "email" field.
+func (m *CodexRegistrationCandidateMutation) SetEmail(s string) {
+	m.email = &s
+}
+
+// Email returns the value of the "email" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) Email() (r string, exists bool) {
+	v := m.email
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEmail returns the old "email" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldEmail(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEmail is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEmail requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEmail: %w", err)
+	}
+	return oldValue.Email, nil
+}
+
+// ClearEmail clears the value of the "email" field.
+func (m *CodexRegistrationCandidateMutation) ClearEmail() {
+	m.email = nil
+	m.clearedFields[codexregistrationcandidate.FieldEmail] = struct{}{}
+}
+
+// EmailCleared returns if the "email" field was cleared in this mutation.
+func (m *CodexRegistrationCandidateMutation) EmailCleared() bool {
+	_, ok := m.clearedFields[codexregistrationcandidate.FieldEmail]
+	return ok
+}
+
+// ResetEmail resets all changes to the "email" field.
+func (m *CodexRegistrationCandidateMutation) ResetEmail() {
+	m.email = nil
+	delete(m.clearedFields, codexregistrationcandidate.FieldEmail)
+}
+
+// SetAccountID sets the "account_id" field.
+func (m *CodexRegistrationCandidateMutation) SetAccountID(s string) {
+	m.account_id = &s
+}
+
+// AccountID returns the value of the "account_id" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) AccountID() (r string, exists bool) {
+	v := m.account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountID returns the old "account_id" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldAccountID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountID: %w", err)
+	}
+	return oldValue.AccountID, nil
+}
+
+// ClearAccountID clears the value of the "account_id" field.
+func (m *CodexRegistrationCandidateMutation) ClearAccountID() {
+	m.account_id = nil
+	m.clearedFields[codexregistrationcandidate.FieldAccountID] = struct{}{}
+}
+
+// AccountIDCleared returns if the "account_id" field was cleared in this mutation.
+func (m *CodexRegistrationCandidateMutation) AccountIDCleared() bool {
+	_, ok := m.clearedFields[codexregistrationcandidate.FieldAccountID]
+	return ok
+}
+
+// ResetAccountID resets all changes to the "account_id" field.
+func (m *CodexRegistrationCandidateMutation) ResetAccountID() {
+	m.account_id = nil
+	delete(m.clearedFields, codexregistrationcandidate.FieldAccountID)
+}
+
+// SetType sets the "type" field.
+func (m *CodexRegistrationCandidateMutation) SetType(s string) {
+	m._type = &s
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) GetType() (r string, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldType(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ClearType clears the value of the "type" field.
+func (m *CodexRegistrationCandidateMutation) ClearType() {
+	m._type = nil
+	m.clearedFields[codexregistrationcandidate.FieldType] = struct{}{}
+}
+
+// TypeCleared returns if the "type" field was cleared in this mutation.
+func (m *CodexRegistrationCandidateMutation) TypeCleared() bool {
+	_, ok := m.clearedFields[codexregistrationcandidate.FieldType]
+	return ok
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *CodexRegistrationCandidateMutation) ResetType() {
+	m._type = nil
+	delete(m.clearedFields, codexregistrationcandidate.FieldType)
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *CodexRegistrationCandidateMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldExpiresAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ClearExpiresAt clears the value of the "expires_at" field.
+func (m *CodexRegistrationCandidateMutation) ClearExpiresAt() {
+	m.expires_at = nil
+	m.clearedFields[codexregistrationcandidate.FieldExpiresAt] = struct{}{}
+}
+
+// ExpiresAtCleared returns if the "expires_at" field was cleared in this mutation.
+func (m *CodexRegistrationCandidateMutation) ExpiresAtCleared() bool {
+	_, ok := m.clearedFields[codexregistrationcandidate.FieldExpiresAt]
+	return ok
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *CodexRegistrationCandidateMutation) ResetExpiresAt() {
+	m.expires_at = nil
+	delete(m.clearedFields, codexregistrationcandidate.FieldExpiresAt)
+}
+
+// SetLastRefreshAt sets the "last_refresh_at" field.
+func (m *CodexRegistrationCandidateMutation) SetLastRefreshAt(t time.Time) {
+	m.last_refresh_at = &t
+}
+
+// LastRefreshAt returns the value of the "last_refresh_at" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) LastRefreshAt() (r time.Time, exists bool) {
+	v := m.last_refresh_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastRefreshAt returns the old "last_refresh_at" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldLastRefreshAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastRefreshAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastRefreshAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastRefreshAt: %w", err)
+	}
+	return oldValue.LastRefreshAt, nil
+}
+
+// ClearLastRefreshAt clears the value of the "last_refresh_at" field.
+func (m *CodexRegistrationCandidateMutation) ClearLastRefreshAt() {
+	m.last_refresh_at = nil
+	m.clearedFields[codexregistrationcandidate.FieldLastRefreshAt] = struct{}{}
+}
+
+// LastRefreshAtCleared returns if the "last_refresh_at" field was cleared in this mutation.
+func (m *CodexRegistrationCandidateMutation) LastRefreshAtCleared() bool {
+	_, ok := m.clearedFields[codexregistrationcandidate.FieldLastRefreshAt]
+	return ok
+}
+
+// ResetLastRefreshAt resets all changes to the "last_refresh_at" field.
+func (m *CodexRegistrationCandidateMutation) ResetLastRefreshAt() {
+	m.last_refresh_at = nil
+	delete(m.clearedFields, codexregistrationcandidate.FieldLastRefreshAt)
+}
+
+// SetLivenessStatus sets the "liveness_status" field.
+func (m *CodexRegistrationCandidateMutation) SetLivenessStatus(s string) {
+	m.liveness_status = &s
+}
+
+// LivenessStatus returns the value of the "liveness_status" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) LivenessStatus() (r string, exists bool) {
+	v := m.liveness_status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLivenessStatus returns the old "liveness_status" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldLivenessStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLivenessStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLivenessStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLivenessStatus: %w", err)
+	}
+	return oldValue.LivenessStatus, nil
+}
+
+// ResetLivenessStatus resets all changes to the "liveness_status" field.
+func (m *CodexRegistrationCandidateMutation) ResetLivenessStatus() {
+	m.liveness_status = nil
+}
+
+// SetWorkflowState sets the "workflow_state" field.
+func (m *CodexRegistrationCandidateMutation) SetWorkflowState(s string) {
+	m.workflow_state = &s
+}
+
+// WorkflowState returns the value of the "workflow_state" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) WorkflowState() (r string, exists bool) {
+	v := m.workflow_state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkflowState returns the old "workflow_state" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldWorkflowState(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkflowState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkflowState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkflowState: %w", err)
+	}
+	return oldValue.WorkflowState, nil
+}
+
+// ResetWorkflowState resets all changes to the "workflow_state" field.
+func (m *CodexRegistrationCandidateMutation) ResetWorkflowState() {
+	m.workflow_state = nil
+}
+
+// SetStatusReason sets the "status_reason" field.
+func (m *CodexRegistrationCandidateMutation) SetStatusReason(s string) {
+	m.status_reason = &s
+}
+
+// StatusReason returns the value of the "status_reason" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) StatusReason() (r string, exists bool) {
+	v := m.status_reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatusReason returns the old "status_reason" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldStatusReason(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatusReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatusReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatusReason: %w", err)
+	}
+	return oldValue.StatusReason, nil
+}
+
+// ClearStatusReason clears the value of the "status_reason" field.
+func (m *CodexRegistrationCandidateMutation) ClearStatusReason() {
+	m.status_reason = nil
+	m.clearedFields[codexregistrationcandidate.FieldStatusReason] = struct{}{}
+}
+
+// StatusReasonCleared returns if the "status_reason" field was cleared in this mutation.
+func (m *CodexRegistrationCandidateMutation) StatusReasonCleared() bool {
+	_, ok := m.clearedFields[codexregistrationcandidate.FieldStatusReason]
+	return ok
+}
+
+// ResetStatusReason resets all changes to the "status_reason" field.
+func (m *CodexRegistrationCandidateMutation) ResetStatusReason() {
+	m.status_reason = nil
+	delete(m.clearedFields, codexregistrationcandidate.FieldStatusReason)
+}
+
+// SetLastCheckedAt sets the "last_checked_at" field.
+func (m *CodexRegistrationCandidateMutation) SetLastCheckedAt(t time.Time) {
+	m.last_checked_at = &t
+}
+
+// LastCheckedAt returns the value of the "last_checked_at" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) LastCheckedAt() (r time.Time, exists bool) {
+	v := m.last_checked_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastCheckedAt returns the old "last_checked_at" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldLastCheckedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastCheckedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastCheckedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastCheckedAt: %w", err)
+	}
+	return oldValue.LastCheckedAt, nil
+}
+
+// ClearLastCheckedAt clears the value of the "last_checked_at" field.
+func (m *CodexRegistrationCandidateMutation) ClearLastCheckedAt() {
+	m.last_checked_at = nil
+	m.clearedFields[codexregistrationcandidate.FieldLastCheckedAt] = struct{}{}
+}
+
+// LastCheckedAtCleared returns if the "last_checked_at" field was cleared in this mutation.
+func (m *CodexRegistrationCandidateMutation) LastCheckedAtCleared() bool {
+	_, ok := m.clearedFields[codexregistrationcandidate.FieldLastCheckedAt]
+	return ok
+}
+
+// ResetLastCheckedAt resets all changes to the "last_checked_at" field.
+func (m *CodexRegistrationCandidateMutation) ResetLastCheckedAt() {
+	m.last_checked_at = nil
+	delete(m.clearedFields, codexregistrationcandidate.FieldLastCheckedAt)
+}
+
+// SetImportedAccountID sets the "imported_account_id" field.
+func (m *CodexRegistrationCandidateMutation) SetImportedAccountID(i int64) {
+	m.imported_account_id = &i
+	m.addimported_account_id = nil
+}
+
+// ImportedAccountID returns the value of the "imported_account_id" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) ImportedAccountID() (r int64, exists bool) {
+	v := m.imported_account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldImportedAccountID returns the old "imported_account_id" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldImportedAccountID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldImportedAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldImportedAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldImportedAccountID: %w", err)
+	}
+	return oldValue.ImportedAccountID, nil
+}
+
+// AddImportedAccountID adds i to the "imported_account_id" field.
+func (m *CodexRegistrationCandidateMutation) AddImportedAccountID(i int64) {
+	if m.addimported_account_id != nil {
+		*m.addimported_account_id += i
+	} else {
+		m.addimported_account_id = &i
+	}
+}
+
+// AddedImportedAccountID returns the value that was added to the "imported_account_id" field in this mutation.
+func (m *CodexRegistrationCandidateMutation) AddedImportedAccountID() (r int64, exists bool) {
+	v := m.addimported_account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearImportedAccountID clears the value of the "imported_account_id" field.
+func (m *CodexRegistrationCandidateMutation) ClearImportedAccountID() {
+	m.imported_account_id = nil
+	m.addimported_account_id = nil
+	m.clearedFields[codexregistrationcandidate.FieldImportedAccountID] = struct{}{}
+}
+
+// ImportedAccountIDCleared returns if the "imported_account_id" field was cleared in this mutation.
+func (m *CodexRegistrationCandidateMutation) ImportedAccountIDCleared() bool {
+	_, ok := m.clearedFields[codexregistrationcandidate.FieldImportedAccountID]
+	return ok
+}
+
+// ResetImportedAccountID resets all changes to the "imported_account_id" field.
+func (m *CodexRegistrationCandidateMutation) ResetImportedAccountID() {
+	m.imported_account_id = nil
+	m.addimported_account_id = nil
+	delete(m.clearedFields, codexregistrationcandidate.FieldImportedAccountID)
+}
+
+// SetImportedAt sets the "imported_at" field.
+func (m *CodexRegistrationCandidateMutation) SetImportedAt(t time.Time) {
+	m.imported_at = &t
+}
+
+// ImportedAt returns the value of the "imported_at" field in the mutation.
+func (m *CodexRegistrationCandidateMutation) ImportedAt() (r time.Time, exists bool) {
+	v := m.imported_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldImportedAt returns the old "imported_at" field's value of the CodexRegistrationCandidate entity.
+// If the CodexRegistrationCandidate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodexRegistrationCandidateMutation) OldImportedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldImportedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldImportedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldImportedAt: %w", err)
+	}
+	return oldValue.ImportedAt, nil
+}
+
+// ClearImportedAt clears the value of the "imported_at" field.
+func (m *CodexRegistrationCandidateMutation) ClearImportedAt() {
+	m.imported_at = nil
+	m.clearedFields[codexregistrationcandidate.FieldImportedAt] = struct{}{}
+}
+
+// ImportedAtCleared returns if the "imported_at" field was cleared in this mutation.
+func (m *CodexRegistrationCandidateMutation) ImportedAtCleared() bool {
+	_, ok := m.clearedFields[codexregistrationcandidate.FieldImportedAt]
+	return ok
+}
+
+// ResetImportedAt resets all changes to the "imported_at" field.
+func (m *CodexRegistrationCandidateMutation) ResetImportedAt() {
+	m.imported_at = nil
+	delete(m.clearedFields, codexregistrationcandidate.FieldImportedAt)
+}
+
+// Where appends a list predicates to the CodexRegistrationCandidateMutation builder.
+func (m *CodexRegistrationCandidateMutation) Where(ps ...predicate.CodexRegistrationCandidate) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the CodexRegistrationCandidateMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *CodexRegistrationCandidateMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.CodexRegistrationCandidate, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *CodexRegistrationCandidateMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *CodexRegistrationCandidateMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (CodexRegistrationCandidate).
+func (m *CodexRegistrationCandidateMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *CodexRegistrationCandidateMutation) Fields() []string {
+	fields := make([]string, 0, 17)
+	if m.created_at != nil {
+		fields = append(fields, codexregistrationcandidate.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, codexregistrationcandidate.FieldUpdatedAt)
+	}
+	if m.source_path != nil {
+		fields = append(fields, codexregistrationcandidate.FieldSourcePath)
+	}
+	if m.source_filename != nil {
+		fields = append(fields, codexregistrationcandidate.FieldSourceFilename)
+	}
+	if m.source_mtime != nil {
+		fields = append(fields, codexregistrationcandidate.FieldSourceMtime)
+	}
+	if m.source_fingerprint != nil {
+		fields = append(fields, codexregistrationcandidate.FieldSourceFingerprint)
+	}
+	if m.email != nil {
+		fields = append(fields, codexregistrationcandidate.FieldEmail)
+	}
+	if m.account_id != nil {
+		fields = append(fields, codexregistrationcandidate.FieldAccountID)
+	}
+	if m._type != nil {
+		fields = append(fields, codexregistrationcandidate.FieldType)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, codexregistrationcandidate.FieldExpiresAt)
+	}
+	if m.last_refresh_at != nil {
+		fields = append(fields, codexregistrationcandidate.FieldLastRefreshAt)
+	}
+	if m.liveness_status != nil {
+		fields = append(fields, codexregistrationcandidate.FieldLivenessStatus)
+	}
+	if m.workflow_state != nil {
+		fields = append(fields, codexregistrationcandidate.FieldWorkflowState)
+	}
+	if m.status_reason != nil {
+		fields = append(fields, codexregistrationcandidate.FieldStatusReason)
+	}
+	if m.last_checked_at != nil {
+		fields = append(fields, codexregistrationcandidate.FieldLastCheckedAt)
+	}
+	if m.imported_account_id != nil {
+		fields = append(fields, codexregistrationcandidate.FieldImportedAccountID)
+	}
+	if m.imported_at != nil {
+		fields = append(fields, codexregistrationcandidate.FieldImportedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *CodexRegistrationCandidateMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case codexregistrationcandidate.FieldCreatedAt:
+		return m.CreatedAt()
+	case codexregistrationcandidate.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case codexregistrationcandidate.FieldSourcePath:
+		return m.SourcePath()
+	case codexregistrationcandidate.FieldSourceFilename:
+		return m.SourceFilename()
+	case codexregistrationcandidate.FieldSourceMtime:
+		return m.SourceMtime()
+	case codexregistrationcandidate.FieldSourceFingerprint:
+		return m.SourceFingerprint()
+	case codexregistrationcandidate.FieldEmail:
+		return m.Email()
+	case codexregistrationcandidate.FieldAccountID:
+		return m.AccountID()
+	case codexregistrationcandidate.FieldType:
+		return m.GetType()
+	case codexregistrationcandidate.FieldExpiresAt:
+		return m.ExpiresAt()
+	case codexregistrationcandidate.FieldLastRefreshAt:
+		return m.LastRefreshAt()
+	case codexregistrationcandidate.FieldLivenessStatus:
+		return m.LivenessStatus()
+	case codexregistrationcandidate.FieldWorkflowState:
+		return m.WorkflowState()
+	case codexregistrationcandidate.FieldStatusReason:
+		return m.StatusReason()
+	case codexregistrationcandidate.FieldLastCheckedAt:
+		return m.LastCheckedAt()
+	case codexregistrationcandidate.FieldImportedAccountID:
+		return m.ImportedAccountID()
+	case codexregistrationcandidate.FieldImportedAt:
+		return m.ImportedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *CodexRegistrationCandidateMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case codexregistrationcandidate.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case codexregistrationcandidate.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case codexregistrationcandidate.FieldSourcePath:
+		return m.OldSourcePath(ctx)
+	case codexregistrationcandidate.FieldSourceFilename:
+		return m.OldSourceFilename(ctx)
+	case codexregistrationcandidate.FieldSourceMtime:
+		return m.OldSourceMtime(ctx)
+	case codexregistrationcandidate.FieldSourceFingerprint:
+		return m.OldSourceFingerprint(ctx)
+	case codexregistrationcandidate.FieldEmail:
+		return m.OldEmail(ctx)
+	case codexregistrationcandidate.FieldAccountID:
+		return m.OldAccountID(ctx)
+	case codexregistrationcandidate.FieldType:
+		return m.OldType(ctx)
+	case codexregistrationcandidate.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	case codexregistrationcandidate.FieldLastRefreshAt:
+		return m.OldLastRefreshAt(ctx)
+	case codexregistrationcandidate.FieldLivenessStatus:
+		return m.OldLivenessStatus(ctx)
+	case codexregistrationcandidate.FieldWorkflowState:
+		return m.OldWorkflowState(ctx)
+	case codexregistrationcandidate.FieldStatusReason:
+		return m.OldStatusReason(ctx)
+	case codexregistrationcandidate.FieldLastCheckedAt:
+		return m.OldLastCheckedAt(ctx)
+	case codexregistrationcandidate.FieldImportedAccountID:
+		return m.OldImportedAccountID(ctx)
+	case codexregistrationcandidate.FieldImportedAt:
+		return m.OldImportedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown CodexRegistrationCandidate field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CodexRegistrationCandidateMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case codexregistrationcandidate.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case codexregistrationcandidate.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case codexregistrationcandidate.FieldSourcePath:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourcePath(v)
+		return nil
+	case codexregistrationcandidate.FieldSourceFilename:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceFilename(v)
+		return nil
+	case codexregistrationcandidate.FieldSourceMtime:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceMtime(v)
+		return nil
+	case codexregistrationcandidate.FieldSourceFingerprint:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceFingerprint(v)
+		return nil
+	case codexregistrationcandidate.FieldEmail:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEmail(v)
+		return nil
+	case codexregistrationcandidate.FieldAccountID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountID(v)
+		return nil
+	case codexregistrationcandidate.FieldType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case codexregistrationcandidate.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	case codexregistrationcandidate.FieldLastRefreshAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastRefreshAt(v)
+		return nil
+	case codexregistrationcandidate.FieldLivenessStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLivenessStatus(v)
+		return nil
+	case codexregistrationcandidate.FieldWorkflowState:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkflowState(v)
+		return nil
+	case codexregistrationcandidate.FieldStatusReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatusReason(v)
+		return nil
+	case codexregistrationcandidate.FieldLastCheckedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastCheckedAt(v)
+		return nil
+	case codexregistrationcandidate.FieldImportedAccountID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetImportedAccountID(v)
+		return nil
+	case codexregistrationcandidate.FieldImportedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetImportedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown CodexRegistrationCandidate field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *CodexRegistrationCandidateMutation) AddedFields() []string {
+	var fields []string
+	if m.addimported_account_id != nil {
+		fields = append(fields, codexregistrationcandidate.FieldImportedAccountID)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *CodexRegistrationCandidateMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case codexregistrationcandidate.FieldImportedAccountID:
+		return m.AddedImportedAccountID()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CodexRegistrationCandidateMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case codexregistrationcandidate.FieldImportedAccountID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddImportedAccountID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown CodexRegistrationCandidate numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *CodexRegistrationCandidateMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(codexregistrationcandidate.FieldEmail) {
+		fields = append(fields, codexregistrationcandidate.FieldEmail)
+	}
+	if m.FieldCleared(codexregistrationcandidate.FieldAccountID) {
+		fields = append(fields, codexregistrationcandidate.FieldAccountID)
+	}
+	if m.FieldCleared(codexregistrationcandidate.FieldType) {
+		fields = append(fields, codexregistrationcandidate.FieldType)
+	}
+	if m.FieldCleared(codexregistrationcandidate.FieldExpiresAt) {
+		fields = append(fields, codexregistrationcandidate.FieldExpiresAt)
+	}
+	if m.FieldCleared(codexregistrationcandidate.FieldLastRefreshAt) {
+		fields = append(fields, codexregistrationcandidate.FieldLastRefreshAt)
+	}
+	if m.FieldCleared(codexregistrationcandidate.FieldStatusReason) {
+		fields = append(fields, codexregistrationcandidate.FieldStatusReason)
+	}
+	if m.FieldCleared(codexregistrationcandidate.FieldLastCheckedAt) {
+		fields = append(fields, codexregistrationcandidate.FieldLastCheckedAt)
+	}
+	if m.FieldCleared(codexregistrationcandidate.FieldImportedAccountID) {
+		fields = append(fields, codexregistrationcandidate.FieldImportedAccountID)
+	}
+	if m.FieldCleared(codexregistrationcandidate.FieldImportedAt) {
+		fields = append(fields, codexregistrationcandidate.FieldImportedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *CodexRegistrationCandidateMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *CodexRegistrationCandidateMutation) ClearField(name string) error {
+	switch name {
+	case codexregistrationcandidate.FieldEmail:
+		m.ClearEmail()
+		return nil
+	case codexregistrationcandidate.FieldAccountID:
+		m.ClearAccountID()
+		return nil
+	case codexregistrationcandidate.FieldType:
+		m.ClearType()
+		return nil
+	case codexregistrationcandidate.FieldExpiresAt:
+		m.ClearExpiresAt()
+		return nil
+	case codexregistrationcandidate.FieldLastRefreshAt:
+		m.ClearLastRefreshAt()
+		return nil
+	case codexregistrationcandidate.FieldStatusReason:
+		m.ClearStatusReason()
+		return nil
+	case codexregistrationcandidate.FieldLastCheckedAt:
+		m.ClearLastCheckedAt()
+		return nil
+	case codexregistrationcandidate.FieldImportedAccountID:
+		m.ClearImportedAccountID()
+		return nil
+	case codexregistrationcandidate.FieldImportedAt:
+		m.ClearImportedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown CodexRegistrationCandidate nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *CodexRegistrationCandidateMutation) ResetField(name string) error {
+	switch name {
+	case codexregistrationcandidate.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case codexregistrationcandidate.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case codexregistrationcandidate.FieldSourcePath:
+		m.ResetSourcePath()
+		return nil
+	case codexregistrationcandidate.FieldSourceFilename:
+		m.ResetSourceFilename()
+		return nil
+	case codexregistrationcandidate.FieldSourceMtime:
+		m.ResetSourceMtime()
+		return nil
+	case codexregistrationcandidate.FieldSourceFingerprint:
+		m.ResetSourceFingerprint()
+		return nil
+	case codexregistrationcandidate.FieldEmail:
+		m.ResetEmail()
+		return nil
+	case codexregistrationcandidate.FieldAccountID:
+		m.ResetAccountID()
+		return nil
+	case codexregistrationcandidate.FieldType:
+		m.ResetType()
+		return nil
+	case codexregistrationcandidate.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	case codexregistrationcandidate.FieldLastRefreshAt:
+		m.ResetLastRefreshAt()
+		return nil
+	case codexregistrationcandidate.FieldLivenessStatus:
+		m.ResetLivenessStatus()
+		return nil
+	case codexregistrationcandidate.FieldWorkflowState:
+		m.ResetWorkflowState()
+		return nil
+	case codexregistrationcandidate.FieldStatusReason:
+		m.ResetStatusReason()
+		return nil
+	case codexregistrationcandidate.FieldLastCheckedAt:
+		m.ResetLastCheckedAt()
+		return nil
+	case codexregistrationcandidate.FieldImportedAccountID:
+		m.ResetImportedAccountID()
+		return nil
+	case codexregistrationcandidate.FieldImportedAt:
+		m.ResetImportedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown CodexRegistrationCandidate field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *CodexRegistrationCandidateMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *CodexRegistrationCandidateMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *CodexRegistrationCandidateMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *CodexRegistrationCandidateMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *CodexRegistrationCandidateMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *CodexRegistrationCandidateMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *CodexRegistrationCandidateMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown CodexRegistrationCandidate unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *CodexRegistrationCandidateMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown CodexRegistrationCandidate edge %s", name)
+}
+
 // ErrorPassthroughRuleMutation represents an operation that mutates the ErrorPassthroughRule nodes in the graph.
 type ErrorPassthroughRuleMutation struct {
 	config
@@ -14764,10 +16167,6 @@ type GroupMutation struct {
 	addmonthly_limit_usd                    *float64
 	default_validity_days                   *int
 	adddefault_validity_days                *int
-	allow_image_generation                  *bool
-	image_rate_independent                  *bool
-	image_rate_multiplier                   *float64
-	addimage_rate_multiplier                *float64
 	image_price_1k                          *float64
 	addimage_price_1k                       *float64
 	image_price_2k                          *float64
@@ -15585,134 +16984,6 @@ func (m *GroupMutation) AddedDefaultValidityDays() (r int, exists bool) {
 func (m *GroupMutation) ResetDefaultValidityDays() {
 	m.default_validity_days = nil
 	m.adddefault_validity_days = nil
-}
-
-// SetAllowImageGeneration sets the "allow_image_generation" field.
-func (m *GroupMutation) SetAllowImageGeneration(b bool) {
-	m.allow_image_generation = &b
-}
-
-// AllowImageGeneration returns the value of the "allow_image_generation" field in the mutation.
-func (m *GroupMutation) AllowImageGeneration() (r bool, exists bool) {
-	v := m.allow_image_generation
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAllowImageGeneration returns the old "allow_image_generation" field's value of the Group entity.
-// If the Group object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GroupMutation) OldAllowImageGeneration(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAllowImageGeneration is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAllowImageGeneration requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAllowImageGeneration: %w", err)
-	}
-	return oldValue.AllowImageGeneration, nil
-}
-
-// ResetAllowImageGeneration resets all changes to the "allow_image_generation" field.
-func (m *GroupMutation) ResetAllowImageGeneration() {
-	m.allow_image_generation = nil
-}
-
-// SetImageRateIndependent sets the "image_rate_independent" field.
-func (m *GroupMutation) SetImageRateIndependent(b bool) {
-	m.image_rate_independent = &b
-}
-
-// ImageRateIndependent returns the value of the "image_rate_independent" field in the mutation.
-func (m *GroupMutation) ImageRateIndependent() (r bool, exists bool) {
-	v := m.image_rate_independent
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldImageRateIndependent returns the old "image_rate_independent" field's value of the Group entity.
-// If the Group object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GroupMutation) OldImageRateIndependent(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldImageRateIndependent is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldImageRateIndependent requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldImageRateIndependent: %w", err)
-	}
-	return oldValue.ImageRateIndependent, nil
-}
-
-// ResetImageRateIndependent resets all changes to the "image_rate_independent" field.
-func (m *GroupMutation) ResetImageRateIndependent() {
-	m.image_rate_independent = nil
-}
-
-// SetImageRateMultiplier sets the "image_rate_multiplier" field.
-func (m *GroupMutation) SetImageRateMultiplier(f float64) {
-	m.image_rate_multiplier = &f
-	m.addimage_rate_multiplier = nil
-}
-
-// ImageRateMultiplier returns the value of the "image_rate_multiplier" field in the mutation.
-func (m *GroupMutation) ImageRateMultiplier() (r float64, exists bool) {
-	v := m.image_rate_multiplier
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldImageRateMultiplier returns the old "image_rate_multiplier" field's value of the Group entity.
-// If the Group object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GroupMutation) OldImageRateMultiplier(ctx context.Context) (v float64, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldImageRateMultiplier is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldImageRateMultiplier requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldImageRateMultiplier: %w", err)
-	}
-	return oldValue.ImageRateMultiplier, nil
-}
-
-// AddImageRateMultiplier adds f to the "image_rate_multiplier" field.
-func (m *GroupMutation) AddImageRateMultiplier(f float64) {
-	if m.addimage_rate_multiplier != nil {
-		*m.addimage_rate_multiplier += f
-	} else {
-		m.addimage_rate_multiplier = &f
-	}
-}
-
-// AddedImageRateMultiplier returns the value that was added to the "image_rate_multiplier" field in this mutation.
-func (m *GroupMutation) AddedImageRateMultiplier() (r float64, exists bool) {
-	v := m.addimage_rate_multiplier
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetImageRateMultiplier resets all changes to the "image_rate_multiplier" field.
-func (m *GroupMutation) ResetImageRateMultiplier() {
-	m.image_rate_multiplier = nil
-	m.addimage_rate_multiplier = nil
 }
 
 // SetImagePrice1k sets the "image_price_1k" field.
@@ -16923,7 +18194,7 @@ func (m *GroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GroupMutation) Fields() []string {
-	fields := make([]string, 0, 34)
+	fields := make([]string, 0, 31)
 	if m.created_at != nil {
 		fields = append(fields, group.FieldCreatedAt)
 	}
@@ -16965,15 +18236,6 @@ func (m *GroupMutation) Fields() []string {
 	}
 	if m.default_validity_days != nil {
 		fields = append(fields, group.FieldDefaultValidityDays)
-	}
-	if m.allow_image_generation != nil {
-		fields = append(fields, group.FieldAllowImageGeneration)
-	}
-	if m.image_rate_independent != nil {
-		fields = append(fields, group.FieldImageRateIndependent)
-	}
-	if m.image_rate_multiplier != nil {
-		fields = append(fields, group.FieldImageRateMultiplier)
 	}
 	if m.image_price_1k != nil {
 		fields = append(fields, group.FieldImagePrice1k)
@@ -17062,12 +18324,6 @@ func (m *GroupMutation) Field(name string) (ent.Value, bool) {
 		return m.MonthlyLimitUsd()
 	case group.FieldDefaultValidityDays:
 		return m.DefaultValidityDays()
-	case group.FieldAllowImageGeneration:
-		return m.AllowImageGeneration()
-	case group.FieldImageRateIndependent:
-		return m.ImageRateIndependent()
-	case group.FieldImageRateMultiplier:
-		return m.ImageRateMultiplier()
 	case group.FieldImagePrice1k:
 		return m.ImagePrice1k()
 	case group.FieldImagePrice2k:
@@ -17139,12 +18395,6 @@ func (m *GroupMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldMonthlyLimitUsd(ctx)
 	case group.FieldDefaultValidityDays:
 		return m.OldDefaultValidityDays(ctx)
-	case group.FieldAllowImageGeneration:
-		return m.OldAllowImageGeneration(ctx)
-	case group.FieldImageRateIndependent:
-		return m.OldImageRateIndependent(ctx)
-	case group.FieldImageRateMultiplier:
-		return m.OldImageRateMultiplier(ctx)
 	case group.FieldImagePrice1k:
 		return m.OldImagePrice1k(ctx)
 	case group.FieldImagePrice2k:
@@ -17285,27 +18535,6 @@ func (m *GroupMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDefaultValidityDays(v)
-		return nil
-	case group.FieldAllowImageGeneration:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAllowImageGeneration(v)
-		return nil
-	case group.FieldImageRateIndependent:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetImageRateIndependent(v)
-		return nil
-	case group.FieldImageRateMultiplier:
-		v, ok := value.(float64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetImageRateMultiplier(v)
 		return nil
 	case group.FieldImagePrice1k:
 		v, ok := value.(float64)
@@ -17449,9 +18678,6 @@ func (m *GroupMutation) AddedFields() []string {
 	if m.adddefault_validity_days != nil {
 		fields = append(fields, group.FieldDefaultValidityDays)
 	}
-	if m.addimage_rate_multiplier != nil {
-		fields = append(fields, group.FieldImageRateMultiplier)
-	}
 	if m.addimage_price_1k != nil {
 		fields = append(fields, group.FieldImagePrice1k)
 	}
@@ -17491,8 +18717,6 @@ func (m *GroupMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedMonthlyLimitUsd()
 	case group.FieldDefaultValidityDays:
 		return m.AddedDefaultValidityDays()
-	case group.FieldImageRateMultiplier:
-		return m.AddedImageRateMultiplier()
 	case group.FieldImagePrice1k:
 		return m.AddedImagePrice1k()
 	case group.FieldImagePrice2k:
@@ -17550,13 +18774,6 @@ func (m *GroupMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddDefaultValidityDays(v)
-		return nil
-	case group.FieldImageRateMultiplier:
-		v, ok := value.(float64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddImageRateMultiplier(v)
 		return nil
 	case group.FieldImagePrice1k:
 		v, ok := value.(float64)
@@ -17744,15 +18961,6 @@ func (m *GroupMutation) ResetField(name string) error {
 		return nil
 	case group.FieldDefaultValidityDays:
 		m.ResetDefaultValidityDays()
-		return nil
-	case group.FieldAllowImageGeneration:
-		m.ResetAllowImageGeneration()
-		return nil
-	case group.FieldImageRateIndependent:
-		m.ResetImageRateIndependent()
-		return nil
-	case group.FieldImageRateMultiplier:
-		m.ResetImageRateMultiplier()
 		return nil
 	case group.FieldImagePrice1k:
 		m.ResetImagePrice1k()

@@ -584,6 +584,50 @@ var (
 			},
 		},
 	}
+	// CodexRegistrationCandidatesColumns holds the columns for the "codex_registration_candidates" table.
+	CodexRegistrationCandidatesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "source_path", Type: field.TypeString, Unique: true, Size: 2048},
+		{Name: "source_filename", Type: field.TypeString, Size: 255},
+		{Name: "source_mtime", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "source_fingerprint", Type: field.TypeString, Size: 128},
+		{Name: "email", Type: field.TypeString, Nullable: true, Size: 320},
+		{Name: "account_id", Type: field.TypeString, Nullable: true, Size: 128},
+		{Name: "type", Type: field.TypeString, Nullable: true, Size: 50},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "last_refresh_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "liveness_status", Type: field.TypeString, Size: 20, Default: "error"},
+		{Name: "workflow_state", Type: field.TypeString, Size: 20, Default: "detected"},
+		{Name: "status_reason", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "last_checked_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "imported_account_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "imported_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// CodexRegistrationCandidatesTable holds the schema information for the "codex_registration_candidates" table.
+	CodexRegistrationCandidatesTable = &schema.Table{
+		Name:       "codex_registration_candidates",
+		Columns:    CodexRegistrationCandidatesColumns,
+		PrimaryKey: []*schema.Column{CodexRegistrationCandidatesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "codexregistrationcandidate_workflow_state",
+				Unique:  false,
+				Columns: []*schema.Column{CodexRegistrationCandidatesColumns[13]},
+			},
+			{
+				Name:    "codexregistrationcandidate_liveness_status",
+				Unique:  false,
+				Columns: []*schema.Column{CodexRegistrationCandidatesColumns[12]},
+			},
+			{
+				Name:    "codexregistrationcandidate_account_id",
+				Unique:  false,
+				Columns: []*schema.Column{CodexRegistrationCandidatesColumns[8]},
+			},
+		},
+	}
 	// ErrorPassthroughRulesColumns holds the columns for the "error_passthrough_rules" table.
 	ErrorPassthroughRulesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -638,9 +682,6 @@ var (
 		{Name: "weekly_limit_usd", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
 		{Name: "monthly_limit_usd", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
 		{Name: "default_validity_days", Type: field.TypeInt, Default: 30},
-		{Name: "allow_image_generation", Type: field.TypeBool, Default: false},
-		{Name: "image_rate_independent", Type: field.TypeBool, Default: false},
-		{Name: "image_rate_multiplier", Type: field.TypeFloat64, Default: 1, SchemaType: map[string]string{"postgres": "decimal(10,4)"}},
 		{Name: "image_price_1k", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
 		{Name: "image_price_2k", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
 		{Name: "image_price_4k", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
@@ -693,7 +734,7 @@ var (
 			{
 				Name:    "group_sort_order",
 				Unique:  false,
-				Columns: []*schema.Column{GroupsColumns[28]},
+				Columns: []*schema.Column{GroupsColumns[25]},
 			},
 		},
 	}
@@ -1692,6 +1733,7 @@ var (
 		ChannelMonitorDailyRollupsTable,
 		ChannelMonitorHistoriesTable,
 		ChannelMonitorRequestTemplatesTable,
+		CodexRegistrationCandidatesTable,
 		ErrorPassthroughRulesTable,
 		GroupsTable,
 		IdempotencyRecordsTable,
@@ -1763,6 +1805,9 @@ func init() {
 	}
 	ChannelMonitorRequestTemplatesTable.Annotation = &entsql.Annotation{
 		Table: "channel_monitor_request_templates",
+	}
+	CodexRegistrationCandidatesTable.Annotation = &entsql.Annotation{
+		Table: "codex_registration_candidates",
 	}
 	ErrorPassthroughRulesTable.Annotation = &entsql.Annotation{
 		Table: "error_passthrough_rules",

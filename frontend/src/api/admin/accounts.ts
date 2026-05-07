@@ -123,6 +123,29 @@ export async function getById(id: number): Promise<Account> {
   return data
 }
 
+export interface ImportOpenAIModelsRequest {
+  account_id?: number
+  platform?: 'openai'
+  type?: 'apikey' | 'oauth'
+  base_url?: string
+  api_key?: string
+}
+
+export interface ImportOpenAIModelsResponse {
+  models: string[]
+  fallback: boolean
+}
+
+export async function importOpenAIModels(
+  payload: ImportOpenAIModelsRequest
+): Promise<ImportOpenAIModelsResponse> {
+  const { data } = await apiClient.post<ImportOpenAIModelsResponse>(
+    '/admin/accounts/import-openai-models',
+    payload
+  )
+  return data
+}
+
 /**
  * Create new account
  * @param accountData - Account data
@@ -370,8 +393,8 @@ export async function batchUpdateCredentials(request: {
  * @returns Success confirmation
  */
 export async function bulkUpdate(
-  accountIdsOrPayload: number[] | Record<string, unknown>,
-  updates?: Record<string, unknown>
+  accountIds: number[],
+  updates: Record<string, unknown>
 ): Promise<{
   success: number
   failed: number
@@ -379,19 +402,16 @@ export async function bulkUpdate(
   failed_ids?: number[]
   results: Array<{ account_id: number; success: boolean; error?: string }>
   }> {
-  const payload = Array.isArray(accountIdsOrPayload)
-    ? {
-        account_ids: accountIdsOrPayload,
-        ...(updates ?? {})
-      }
-    : accountIdsOrPayload
   const { data } = await apiClient.post<{
     success: number
     failed: number
     success_ids?: number[]
     failed_ids?: number[]
     results: Array<{ account_id: number; success: boolean; error?: string }>
-  }>('/admin/accounts/bulk-update', payload)
+  }>('/admin/accounts/bulk-update', {
+    account_ids: accountIds,
+    ...updates
+  })
   return data
 }
 
@@ -653,6 +673,7 @@ export const accountsAPI = {
   resetTempUnschedulable,
   setSchedulable,
   getAvailableModels,
+  importOpenAIModels,
   generateAuthUrl,
   exchangeCode,
   refreshOpenAIToken,

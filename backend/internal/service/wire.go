@@ -271,22 +271,15 @@ func ProvideOpsAlertEvaluatorService(
 // ProvideOpsCleanupService creates and starts OpsCleanupService (cron scheduled).
 // channelMonitorSvc 让维护任务（聚合 + 历史/聚合软删）跟随 ops 清理 cron 一起跑，
 // 共享 leader lock + heartbeat。
-// settingRepo 让 cleanup service 自己读 ops_advanced_settings.data_retention 覆盖 cfg；
-// opsService 用来反向注入 cleanup hook，以便 UI 改清理设置时能 Reload cron。
 func ProvideOpsCleanupService(
 	opsRepo OpsRepository,
 	db *sql.DB,
 	redisClient *redis.Client,
 	cfg *config.Config,
 	channelMonitorSvc *ChannelMonitorService,
-	settingRepo SettingRepository,
-	opsService *OpsService,
 ) *OpsCleanupService {
-	svc := NewOpsCleanupService(opsRepo, db, redisClient, cfg, channelMonitorSvc, settingRepo)
+	svc := NewOpsCleanupService(opsRepo, db, redisClient, cfg, channelMonitorSvc)
 	svc.Start()
-	if opsService != nil {
-		opsService.SetCleanupReloader(svc)
-	}
 	return svc
 }
 
@@ -411,20 +404,156 @@ func ProvideBillingCacheService(
 	return NewBillingCacheService(cache, userRepo, subRepo, apiKeyRepo, rpmCache, rateRepo, cfg)
 }
 
-// ProvideAPIKeyService wires APIKeyService and connects rate-limit cache invalidation.
-func ProvideAPIKeyService(
-	apiKeyRepo APIKeyRepository,
+// ProvideOpenAIGatewayService creates OpenAIGatewayService with optional SettingService injection.
+func ProvideOpenAIGatewayService(
+	accountRepo AccountRepository,
+	usageLogRepo UsageLogRepository,
+	usageBillingRepo UsageBillingRepository,
 	userRepo UserRepository,
-	groupRepo GroupRepository,
 	userSubRepo UserSubscriptionRepository,
 	userGroupRateRepo UserGroupRateRepository,
-	cache APIKeyCache,
+	cache GatewayCache,
 	cfg *config.Config,
+	schedulerSnapshot *SchedulerSnapshotService,
+	concurrencyService *ConcurrencyService,
+	billingService *BillingService,
+	rateLimitService *RateLimitService,
 	billingCacheService *BillingCacheService,
-) *APIKeyService {
-	svc := NewAPIKeyService(apiKeyRepo, userRepo, groupRepo, userSubRepo, userGroupRateRepo, cache, cfg)
-	svc.SetRateLimitCacheInvalidator(billingCacheService)
+	httpUpstream HTTPUpstream,
+	deferredService *DeferredService,
+	openAITokenProvider *OpenAITokenProvider,
+	resolver *ModelPricingResolver,
+	channelService *ChannelService,
+	balanceNotifyService *BalanceNotifyService,
+	settingService *SettingService,
+) *OpenAIGatewayService {
+	svc := NewOpenAIGatewayService(
+		accountRepo,
+		usageLogRepo,
+		usageBillingRepo,
+		userRepo,
+		userSubRepo,
+		userGroupRateRepo,
+		cache,
+		cfg,
+		schedulerSnapshot,
+		concurrencyService,
+		billingService,
+		rateLimitService,
+		billingCacheService,
+		httpUpstream,
+		deferredService,
+		openAITokenProvider,
+		resolver,
+		channelService,
+		balanceNotifyService,
+	)
+	svc.SetSettingService(settingService)
 	return svc
+}
+
+// ProvideGeminiMessagesCompatService creates GeminiMessagesCompatService with optional SettingService injection.
+func ProvideGeminiMessagesCompatService(
+	accountRepo AccountRepository,
+	groupRepo GroupRepository,
+	cache GatewayCache,
+	schedulerSnapshot *SchedulerSnapshotService,
+	tokenProvider *GeminiTokenProvider,
+	rateLimitService *RateLimitService,
+	httpUpstream HTTPUpstream,
+	antigravityGatewayService *AntigravityGatewayService,
+	cfg *config.Config,
+	settingService *SettingService,
+) *GeminiMessagesCompatService {
+	svc := NewGeminiMessagesCompatService(
+		accountRepo,
+		groupRepo,
+		cache,
+		schedulerSnapshot,
+		tokenProvider,
+		rateLimitService,
+		httpUpstream,
+		antigravityGatewayService,
+		cfg,
+	)
+	svc.SetSettingService(settingService)
+	return svc
+}
+
+// ProvideAccountTestService creates AccountTestService with optional SettingService injection.
+func ProvideAccountTestService(
+	accountRepo AccountRepository,
+	geminiTokenProvider *GeminiTokenProvider,
+	antigravityGatewayService *AntigravityGatewayService,
+	httpUpstream HTTPUpstream,
+	cfg *config.Config,
+	tlsFPProfileService *TLSFingerprintProfileService,
+	settingService *SettingService,
+) *AccountTestService {
+	svc := NewAccountTestService(
+		accountRepo,
+		geminiTokenProvider,
+		antigravityGatewayService,
+		httpUpstream,
+		cfg,
+		tlsFPProfileService,
+	)
+	svc.SetSettingService(settingService)
+	return svc
+}
+
+func ProvideCodexRegistrationAccountReader(accountRepo AccountRepository) CodexRegistrationAccountReader {
+	return accountRepo
+}
+
+func ProvideCodexRegistrationOAuthRefresher(openaiOAuthService *OpenAIOAuthService) CodexRegistrationOAuthRefresher {
+	return openaiOAuthService
+}
+
+func ProvideCodexRegistrationAccountCreator(adminService AdminService) CodexRegistrationAccountCreator {
+	return adminService
+}
+
+func ProvideAccountRegistrationWorkerOAuthRefresher(openaiOAuthService *OpenAIOAuthService) AccountRegistrationWorkerOAuthRefresher {
+	return openaiOAuthService
+}
+
+func ProvideAccountRegistrationWorkerAccountReader(accountRepo AccountRepository) AccountRegistrationWorkerAccountReader {
+	return accountRepo
+}
+
+func ProvideAccountRegistrationWorkerAccountCreator(adminService AdminService) AccountRegistrationWorkerAccountCreator {
+	return adminService
+}
+
+func ProvideAccountRegistrationWorkerProxyReader(adminService AdminService) AccountRegistrationWorkerProxyReader {
+	return adminService
+}
+
+func ProvideAccountRegistrationWorkerModelFetcher() AccountRegistrationWorkerModelFetcher {
+	return NewAccountRegistrationWorkerModelFetcher()
+}
+
+func ProvideAccountRegistrationWorkerService(
+	cfg *config.Config,
+	oauth AccountRegistrationWorkerOAuthRefresher,
+	accountReader AccountRegistrationWorkerAccountReader,
+	accountCreator AccountRegistrationWorkerAccountCreator,
+	proxyReader AccountRegistrationWorkerProxyReader,
+	modelFetcher AccountRegistrationWorkerModelFetcher,
+) *AccountRegistrationWorkerService {
+	workerAPIKey := ""
+	if cfg != nil {
+		workerAPIKey = cfg.AccountRegistration.WorkerAPIKey
+	}
+	return NewAccountRegistrationWorkerService(
+		workerAPIKey,
+		oauth,
+		accountReader,
+		accountCreator,
+		proxyReader,
+		modelFetcher,
+	)
 }
 
 // ProviderSet is the Wire provider set for all services
@@ -432,7 +561,7 @@ var ProviderSet = wire.NewSet(
 	// Core services
 	NewAuthService,
 	NewUserService,
-	ProvideAPIKeyService,
+	NewAPIKeyService,
 	ProvideAPIKeyAuthCacheInvalidator,
 	NewGroupService,
 	NewAccountService,
@@ -446,8 +575,18 @@ var ProviderSet = wire.NewSet(
 	ProvideBillingCacheService,
 	NewAnnouncementService,
 	NewAdminService,
+	ProvideAccountRegistrationWorkerOAuthRefresher,
+	ProvideAccountRegistrationWorkerAccountReader,
+	ProvideAccountRegistrationWorkerAccountCreator,
+	ProvideAccountRegistrationWorkerProxyReader,
+	ProvideAccountRegistrationWorkerModelFetcher,
+	ProvideAccountRegistrationWorkerService,
+	ProvideCodexRegistrationAccountReader,
+	ProvideCodexRegistrationOAuthRefresher,
+	ProvideCodexRegistrationAccountCreator,
+	NewCodexRegistrationService,
 	NewGatewayService,
-	NewOpenAIGatewayService,
+	ProvideOpenAIGatewayService,
 	NewOAuthService,
 	NewOpenAIOAuthService,
 	NewGeminiOAuthService,
@@ -457,14 +596,15 @@ var ProviderSet = wire.NewSet(
 	NewAntigravityOAuthService,
 	ProvideOAuthRefreshAPI,
 	ProvideGeminiTokenProvider,
-	NewGeminiMessagesCompatService,
+	ProvideGeminiMessagesCompatService,
 	ProvideAntigravityTokenProvider,
 	ProvideOpenAITokenProvider,
 	ProvideClaudeTokenProvider,
 	NewAntigravityGatewayService,
 	ProvideRateLimitService,
 	NewAccountUsageService,
-	NewAccountTestService,
+	ProvideAccountTestService,
+	NewOpenAIOAuthDetectionService,
 	ProvideSettingService,
 	NewDataManagementService,
 	ProvideBackupService,
@@ -509,7 +649,6 @@ var ProviderSet = wire.NewSet(
 	NewGroupCapacityService,
 	NewChannelService,
 	NewModelPricingResolver,
-	NewContentModerationService,
 	NewAffiliateService,
 	ProvidePaymentConfigService,
 	NewPaymentService,

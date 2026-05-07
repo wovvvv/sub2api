@@ -35,6 +35,65 @@ type snapshotUpdateAccountRepo struct {
 	updateExtraCalls chan map[string]any
 }
 
+type stubOpenAISettingRepo struct {
+	values map[string]string
+}
+
+func (r *stubOpenAISettingRepo) Get(_ context.Context, key string) (*Setting, error) {
+	if value, ok := r.values[key]; ok {
+		return &Setting{Key: key, Value: value}, nil
+	}
+	return nil, ErrSettingNotFound
+}
+
+func (r *stubOpenAISettingRepo) GetValue(_ context.Context, key string) (string, error) {
+	if value, ok := r.values[key]; ok {
+		return value, nil
+	}
+	return "", ErrSettingNotFound
+}
+
+func (r *stubOpenAISettingRepo) Set(_ context.Context, key, value string) error {
+	if r.values == nil {
+		r.values = map[string]string{}
+	}
+	r.values[key] = value
+	return nil
+}
+
+func (r *stubOpenAISettingRepo) GetMultiple(_ context.Context, keys []string) (map[string]string, error) {
+	result := make(map[string]string, len(keys))
+	for _, key := range keys {
+		if value, ok := r.values[key]; ok {
+			result[key] = value
+		}
+	}
+	return result, nil
+}
+
+func (r *stubOpenAISettingRepo) SetMultiple(_ context.Context, settings map[string]string) error {
+	if r.values == nil {
+		r.values = map[string]string{}
+	}
+	for key, value := range settings {
+		r.values[key] = value
+	}
+	return nil
+}
+
+func (r *stubOpenAISettingRepo) GetAll(_ context.Context) (map[string]string, error) {
+	result := make(map[string]string, len(r.values))
+	for key, value := range r.values {
+		result[key] = value
+	}
+	return result, nil
+}
+
+func (r *stubOpenAISettingRepo) Delete(_ context.Context, key string) error {
+	delete(r.values, key)
+	return nil
+}
+
 func (r *snapshotUpdateAccountRepo) UpdateExtra(ctx context.Context, id int64, updates map[string]any) error {
 	if r.updateExtraCalls != nil {
 		copied := make(map[string]any, len(updates))
@@ -225,41 +284,6 @@ func TestOpenAIGatewayService_GenerateSessionHash_AttachesLegacyHashToContext(t 
 	require.NotNil(t, c.Request)
 	require.NotNil(t, c.Request.Context())
 	require.NotEmpty(t, openAILegacySessionHashFromContext(c.Request.Context()))
-}
-
-func TestOpenAIGatewayService_GenerateExplicitSessionHash_SkipsContentFallback(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := &OpenAIGatewayService{}
-	body := []byte(`{"model":"gpt-image-2","prompt":"draw a cat"}`)
-
-	t.Run("stateless image body stays unstuck", func(t *testing.T) {
-		rec := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(rec)
-		c.Request = httptest.NewRequest(http.MethodPost, "/v1/images/generations", nil)
-
-		require.Empty(t, svc.GenerateExplicitSessionHash(c, body))
-		require.Empty(t, openAILegacySessionHashFromContext(c.Request.Context()))
-	})
-
-	t.Run("prompt_cache_key is explicit", func(t *testing.T) {
-		rec := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(rec)
-		c.Request = httptest.NewRequest(http.MethodPost, "/v1/images/generations", nil)
-
-		got := svc.GenerateExplicitSessionHash(c, []byte(`{"model":"gpt-image-2","prompt_cache_key":"image-session"}`))
-		require.Equal(t, fmt.Sprintf("%016x", xxhash.Sum64String("image-session")), got)
-		require.NotEmpty(t, openAILegacySessionHashFromContext(c.Request.Context()))
-	})
-
-	t.Run("header overrides body", func(t *testing.T) {
-		rec := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(rec)
-		c.Request = httptest.NewRequest(http.MethodPost, "/v1/images/generations", nil)
-		c.Request.Header.Set("session_id", "header-session")
-
-		got := svc.GenerateExplicitSessionHash(c, []byte(`{"prompt_cache_key":"body-session"}`))
-		require.Equal(t, fmt.Sprintf("%016x", xxhash.Sum64String("header-session")), got)
-	})
 }
 
 func TestOpenAIGatewayService_GenerateSessionHashWithFallback(t *testing.T) {
@@ -1718,6 +1742,41 @@ func TestOpenAIValidateUpstreamBaseURLEnabledEnforcesAllowlist(t *testing.T) {
 	}
 }
 
+func TestOpenAIValidateUpstreamBaseURLEnabledUsesSettingServiceAllowlist(t *testing.T) {
+	upstreamURLAllowlistSF.Forget("upstream_url_allowlist")
+	upstreamURLAllowlistCache.Store(&cachedUpstreamURLAllowlistSettings{expiresAt: 0})
+	t.Cleanup(func() {
+		upstreamURLAllowlistSF.Forget("upstream_url_allowlist")
+		upstreamURLAllowlistCache.Store(&cachedUpstreamURLAllowlistSettings{expiresAt: 0})
+	})
+
+	cfg := &config.Config{
+		Security: config.SecurityConfig{
+			URLAllowlist: config.URLAllowlistConfig{
+				Enabled:       true,
+				UpstreamHosts: []string{"api.openai.com"},
+			},
+		},
+	}
+	settingService := NewSettingService(&stubOpenAISettingRepo{
+		values: map[string]string{
+			SettingKeyURLAllowlistEnabled:       "true",
+			SettingKeyURLAllowlistUpstreamHosts: `["integrate.api.nvidia.com"]`,
+		},
+	}, cfg)
+	svc := &OpenAIGatewayService{
+		cfg:            cfg,
+		settingService: settingService,
+	}
+
+	if _, err := svc.validateUpstreamBaseURL("https://integrate.api.nvidia.com"); err != nil {
+		t.Fatalf("expected runtime setting allowlist host to pass, got %v", err)
+	}
+	if _, err := svc.validateUpstreamBaseURL("https://api.openai.com"); err == nil {
+		t.Fatalf("expected config allowlist to be overridden by runtime settings")
+	}
+}
+
 func TestOpenAIUpdateCodexUsageSnapshotFromHeaders(t *testing.T) {
 	repo := &snapshotUpdateAccountRepo{updateExtraCalls: make(chan map[string]any, 1)}
 	svc := &OpenAIGatewayService{accountRepo: repo}
@@ -1767,24 +1826,6 @@ func TestOpenAIResponsesRequestPathSuffix(t *testing.T) {
 	}
 }
 
-func TestNormalizeOpenAICompactRequestBodyPreservesCurrentCodexPayloadFields(t *testing.T) {
-	body := []byte(`{"model":"gpt-5.5","input":[{"type":"message","role":"user","content":"compact me"}],"instructions":"compact-test","tools":[{"type":"function","name":"shell"}],"parallel_tool_calls":true,"reasoning":{"effort":"high"},"text":{"verbosity":"low"},"previous_response_id":"resp_123","store":true,"stream":true,"prompt_cache_key":"cache_123"}`)
-
-	normalized, changed, err := normalizeOpenAICompactRequestBody(body)
-
-	require.NoError(t, err)
-	require.True(t, changed)
-	require.Equal(t, "gpt-5.5", gjson.GetBytes(normalized, "model").String())
-	require.True(t, gjson.GetBytes(normalized, "tools").Exists())
-	require.True(t, gjson.GetBytes(normalized, "parallel_tool_calls").Bool())
-	require.Equal(t, "high", gjson.GetBytes(normalized, "reasoning.effort").String())
-	require.Equal(t, "low", gjson.GetBytes(normalized, "text.verbosity").String())
-	require.Equal(t, "resp_123", gjson.GetBytes(normalized, "previous_response_id").String())
-	require.False(t, gjson.GetBytes(normalized, "store").Exists())
-	require.False(t, gjson.GetBytes(normalized, "stream").Exists())
-	require.False(t, gjson.GetBytes(normalized, "prompt_cache_key").Exists())
-}
-
 func TestOpenAIBuildUpstreamRequestOpenAIPassthroughPreservesCompactPath(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	rec := httptest.NewRecorder()
@@ -1820,29 +1861,6 @@ func TestOpenAIBuildUpstreamRequestCompactForcesJSONAcceptForOAuth(t *testing.T)
 	require.Equal(t, "application/json", req.Header.Get("Accept"))
 	require.Equal(t, codexCLIVersion, req.Header.Get("Version"))
 	require.NotEmpty(t, req.Header.Get("Session_Id"))
-}
-
-func TestOpenAIBuildUpstreamRequestOAuthMessagesBridgeUsesSessionOnly(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	rec := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(rec)
-	body := []byte(`{"model":"gpt-5.5","prompt_cache_key":"anthropic-metadata-session-1","input":[{"type":"message","role":"developer","content":[{"type":"input_text","text":"<sub2api-claude-code-todo-guard>"}]},{"type":"message","role":"user","content":"hello"}]}`)
-	c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", bytes.NewReader(body))
-	c.Request.Header.Set("OpenAI-Beta", "responses=experimental")
-	c.Request.Header.Set("originator", "codex_cli_rs")
-
-	svc := &OpenAIGatewayService{}
-	account := &Account{
-		Type:        AccountTypeOAuth,
-		Credentials: map[string]any{"chatgpt_account_id": "chatgpt-acc"},
-	}
-
-	req, err := svc.buildUpstreamRequest(c.Request.Context(), c, account, body, "token", true, "anthropic-metadata-session-1", false)
-	require.NoError(t, err)
-	require.NotEmpty(t, req.Header.Get("Session_Id"))
-	require.Empty(t, req.Header.Get("Conversation_Id"))
-	require.Empty(t, req.Header.Get("OpenAI-Beta"))
-	require.Empty(t, req.Header.Get("originator"))
 }
 
 func TestOpenAIBuildUpstreamRequestPreservesCompactPathForAPIKeyBaseURL(t *testing.T) {

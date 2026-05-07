@@ -29,8 +29,9 @@ import channelsAPI from './channels'
 import channelMonitorAPI from './channelMonitor'
 import channelMonitorTemplateAPI from './channelMonitorTemplate'
 import adminPaymentAPI from './payment'
+import { codexRegistrationAPI } from './codexRegistration'
+import openaiOAuthDetectionAPI from './openaiOAuthDetection'
 import affiliatesAPI from './affiliates'
-import riskControlAPI from './riskControl'
 
 /**
  * Unified admin API object for convenient access
@@ -62,8 +63,9 @@ export const adminAPI = {
   channelMonitor: channelMonitorAPI,
   channelMonitorTemplate: channelMonitorTemplateAPI,
   payment: adminPaymentAPI,
-  affiliates: affiliatesAPI,
-  riskControl: riskControlAPI
+  codexRegistration: codexRegistrationAPI,
+  openaiOAuthDetection: openaiOAuthDetectionAPI,
+  affiliates: affiliatesAPI
 }
 
 export {
@@ -93,8 +95,9 @@ export {
   channelMonitorAPI,
   channelMonitorTemplateAPI,
   adminPaymentAPI,
-  affiliatesAPI,
-  riskControlAPI
+  codexRegistrationAPI,
+  openaiOAuthDetectionAPI,
+  affiliatesAPI
 }
 
 export default adminAPI
@@ -104,4 +107,3 @@ export type { BalanceHistoryItem } from './users'
 export type { ErrorPassthroughRule, CreateRuleRequest, UpdateRuleRequest } from './errorPassthrough'
 export type { BackupAgentHealth, DataManagementConfig } from './dataManagement'
 export type { TLSFingerprintProfile, CreateProfileRequest, UpdateProfileRequest } from './tlsFingerprintProfile'
-export type { ContentModerationConfig, ContentModerationLog, ModerationMode } from './riskControl'

@@ -625,9 +625,6 @@ func normalizeModelNameForPricing(model string) string {
 	}
 
 	model = strings.TrimLeft(model, "/")
-	if canonical := canonicalizeOpenAIModelAliasSpelling(model); canonical != "" {
-		return canonical
-	}
 	return model
 }
 
