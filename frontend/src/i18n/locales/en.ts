@@ -2900,7 +2900,7 @@ export default {
       targetNoWildcard: 'Target model cannot contain wildcard *',
       searchModels: 'Search models...',
       noMatchingModels: 'No matching models',
-      fillRelatedModels: 'Fill related models',
+      fillRelatedModels: 'Sync latest supported models',
       clearAllModels: 'Clear all models',
       customModelName: 'Custom model name',
       enterCustomModelName: 'Enter custom model name',
@@ -4767,6 +4767,7 @@ export default {
       description: 'Manage registration, email verification, default values, and SMTP settings',
       tabs: {
         general: 'General',
+        agreement: 'Agreement',
         features: 'Feature Switches',
         security: 'Security',
         users: 'Users',

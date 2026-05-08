@@ -3044,7 +3044,7 @@ export default {
       targetNoWildcard: '目标模型不能包含通配符 *',
       searchModels: '搜索模型...',
       noMatchingModels: '没有匹配的模型',
-      fillRelatedModels: '填入相关模型',
+      fillRelatedModels: '同步最新支持模型',
       clearAllModels: '清除所有模型',
       customModelName: '自定义模型名称',
       enterCustomModelName: '输入自定义模型名称',
@@ -4929,6 +4929,7 @@ export default {
       description: '管理注册、邮箱验证、默认值和 SMTP 设置',
       tabs: {
         general: '通用设置',
+        agreement: '登录条款',
         features: '功能开关',
         security: '安全与认证',
         users: '用户默认值',
